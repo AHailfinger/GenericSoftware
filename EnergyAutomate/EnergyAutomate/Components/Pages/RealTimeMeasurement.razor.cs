@@ -86,33 +86,55 @@ namespace EnergyAutomate.Components.Pages
             var count = ApiServiceInfo.RealTimeMeasurements.Count;
             var dataSource = ApiServiceInfo.RealTimeMeasurements.OrderByDescending(x => x.Timestamp).Take(61).Reverse().ToList();
 
+            // Berechne den Durchschnittsverbrauch für jeden Datenpunkt basierend auf den letzten 30 Sekunden
+            var avgPowerLoad = new List<double?>();
+            foreach (var dataPoint in dataSource)
+            {
+                var lastSecondsData = dataSource.Where(x => x.Timestamp >= dataPoint.Timestamp.AddSeconds(ApiServiceInfo.AvgPowerLoadSeconds *(-1)) && x.Timestamp <= dataPoint.Timestamp).ToList();
+                var avgPower = lastSecondsData.Any() ? lastSecondsData.Average(x => (double?)x.Power) : 0;
+                var avgPowerProduction = lastSecondsData.Any() ? lastSecondsData.Average(x => (double?)x.PowerProduction) : 0;
+                avgPowerLoad.Add((avgPower + avgPowerProduction) / 2);
+            }
+
             realTimeMeasurementData = new ChartData
             {
                 Labels = dataSource.Select((x, index) => index % 5 == 0 ? x.Timestamp.TimeOfDay.ToString() : string.Empty).ToList(),
                 Datasets = new List<IChartDataset>()
-               {
-                   new LineChartDataset()
-                   {
-                       Label = "Consumtion",
-                       Data = dataSource.Select(x => (double?)x.Power).ToList(),
-                       BackgroundColor = "rgb(88, 80, 141)",
-                       BorderColor = "rgb(88, 80, 141)",
-                       BorderWidth = 2,
-                       HoverBorderWidth = 4,
-                       Fill = true,
-                       Stepped = true
-                   },
-                   new LineChartDataset()
-                   {
-                       Label = "Production",
-                       Data = dataSource.Select(x => (double?)x.PowerProduction).Select(s => s *(-1)).ToList(),
-                       BackgroundColor = "rgb(255, 166, 0)",
-                       BorderColor = "rgb(255, 166, 0)",
-                       BorderWidth = 2,
-                       HoverBorderWidth = 4,
-                       Fill = true,
-                       Stepped = true
-                   }
+                {
+                    new LineChartDataset()
+                    {
+                        Label = "Consumtion",
+                        Data = dataSource.Select(x => (double?)x.Power).ToList(),
+                        BackgroundColor = "rgb(88, 80, 141)",
+                        BorderColor = "rgb(88, 80, 141)",
+                        BorderWidth = 2,
+                        HoverBorderWidth = 4,
+                        Fill = true,
+                        Stepped = true,
+                        Order = 3
+                    },
+                    new LineChartDataset()
+                    {
+                        Label = "Production",
+                        Data = dataSource.Select(x => (double?)x.PowerProduction).Select(s => s *(-1)).ToList(),
+                        BackgroundColor = "rgb(255, 166, 0)",
+                        BorderColor = "rgb(255, 166, 0)",
+                        BorderWidth = 2,
+                        HoverBorderWidth = 4,
+                        Fill = true,
+                        Stepped = true,
+                        Order = 2
+                    },
+                    new LineChartDataset()
+                    {
+                        Label = "AvgPowerLoad",
+                        Data = avgPowerLoad,
+                        BackgroundColor = "rgb(0, 0, 0)",
+                        BorderColor = "rgb(0, 0, 0)",
+                        BorderWidth = 1,
+                        PointRadius = new List<double>() { 0 },                        
+                        Order = 1
+                    }
                }
             };
         }
@@ -224,8 +246,8 @@ namespace EnergyAutomate.Components.Pages
         private async Task RefreshDeviceList()
         {
             await ApiServiceInfo.InvokeRefreshDeviceList();
-        }        
-        
+        }
+
         private async Task ClearDeviceNoahTimeSegments()
         {
             await ApiServiceInfo.InvokeClearDeviceNoahTimeSegments();
