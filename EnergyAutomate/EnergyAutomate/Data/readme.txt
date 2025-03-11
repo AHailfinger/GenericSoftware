@@ -1,0 +1,1 @@
+Add-Migration InitialSetup -Context ApplicationDbContext

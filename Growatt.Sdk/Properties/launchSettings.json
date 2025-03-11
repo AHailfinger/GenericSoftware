@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Growatt.OpenApi": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:58770;http://localhost:58771"
+    }
+  }
+}

@@ -1,0 +1,89 @@
+﻿@page "/realtimemeasurement"
+@using System.Collections.Specialized
+
+@rendermode InteractiveServer
+
+@inject ApiServiceInfo ApiServiceInfo
+
+<PageTitle>RealTimeMeasurement</PageTitle>
+
+<h1>RealTimeMeasurement</h1>
+<div class="mt-3 d-flex justify-content-center gap-3">
+    <div class="flex-column">
+        <Switch @bind-Value="ApiServiceInfo.AutoMode" Label="AutoMode (zero injection on low soc)" />
+    </div>
+    <div class="flex-column">
+        AvgPowerLoadSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.AvgPowerLoadSeconds" Min="5" Max="30" TickMarks="AvgPowerLoadSecondsTickList" />
+    </div>
+    <div class="flex-column">
+        ApiLockSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.ApiLockSeconds" Min="5" Max="15" TickMarks="ApiLockSecondsTickList" />
+    </div>
+</div>
+
+@if (ApiServiceInfo.RealTimeMeasurements == null || !ApiServiceInfo.RealTimeMeasurements.Any())
+{
+    <p>Loading...</p>
+}
+else
+{
+    <LineChart @ref="realTimeMeasurementChart" Class="tibberLineChart" Height="40" HeightUnit="Unit.Vh" />
+    <LineChart @ref="priceChart" Class="tibberLineChart" Height="40" HeightUnit="Unit.Vh" />
+}
+
+<Button Color="ButtonColor.Primary" @onclick="RefreshDeviceList">Refresh Device List</Button>
+<Button Color="ButtonColor.Primary" @onclick="ClearDeviceNoahTimeSegments">Clear Device Noah Timesegments </Button>
+
+@if (ApiServiceInfo.Devices == null || !ApiServiceInfo.Devices.Any())
+{
+    <p>Loading...</p>
+}
+else
+{
+    <ul>
+        @foreach (var device in ApiServiceInfo.Devices)
+        {
+            <li>@device.DeviceType : @device.DeviceSn </li>
+        }
+    </ul>
+}
+
+<Button Color="ButtonColor.Primary" @onclick="RefreshNoahs">Refresh Noah Devices</Button>
+<Button Color="ButtonColor.Primary" @onclick="RefreshNoahLastData">Refresh Noah Device last data</Button>
+
+@if (ApiServiceInfo.DeviceNoahInfo == null || !ApiServiceInfo.DeviceNoahInfo.Any())
+{
+    <p>Loading...</p>
+}
+else
+{
+    <Tabs @ref="tabsRef">
+        @foreach (var deviceInfo in ApiServiceInfo.DeviceNoahInfo)
+        {
+            <Tab Title="@($"{deviceInfo.Model} : {deviceInfo.DeviceSn}")">
+                <Content>
+                    <div class="mt-3 d-flex">
+                        <div class="flex-column">
+                            <ul>
+                                @foreach (var property in deviceInfo.GetType().GetProperties())
+                                {
+                                    <li>@property.Name : @property.GetValue(deviceInfo)</li>
+                                }
+                            </ul>
+                        </div>
+                        <div class="flex-column ml-3">
+                            <ul>
+                                @foreach (var lastData in ApiServiceInfo.DeviceNoahLastData.Where(x => x.deviceSn == deviceInfo.DeviceSn))
+                                {
+
+                                    DateTime time = DateTimeOffset.FromUnixTimeMilliseconds(@lastData.time).DateTime;
+
+                                    <li>@time,  Workmode: @lastData.workMode , Power(W): @lastData.ppv, PAC(W): @lastData.pac, ChargingModus: @lastData.totalBatteryPackChargingStatus , Charging(W): @lastData.totalBatteryPackChargingPower , SOC: @lastData.totalBatteryPackSoc</li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </Content>
+            </Tab>
+        }
+    </Tabs>
+}

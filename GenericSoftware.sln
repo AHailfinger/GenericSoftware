@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35825.156
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnergyAutomate", "EnergyAutomate\EnergyAutomate\EnergyAutomate.csproj", "{3E6D1F50-3D7F-4DC1-ACAB-395E7533A847}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnergyAutomate.Client", "EnergyAutomate\EnergyAutomate.Client\EnergyAutomate.Client.csproj", "{9E43901A-D7AB-41BE-AEEB-F6556B8FF1F3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tibber.Sdk", "Tibber.Sdk\Tibber.Sdk.csproj", "{7CE4DB5C-B72A-7115-D8C5-8CF4082A25E4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Growatt.Sdk", "Growatt.Sdk\Growatt.Sdk.csproj", "{0BEB2A4A-565C-7917-DD77-0C4CE310CB0C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3E6D1F50-3D7F-4DC1-ACAB-395E7533A847}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E6D1F50-3D7F-4DC1-ACAB-395E7533A847}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E6D1F50-3D7F-4DC1-ACAB-395E7533A847}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E6D1F50-3D7F-4DC1-ACAB-395E7533A847}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E43901A-D7AB-41BE-AEEB-F6556B8FF1F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E43901A-D7AB-41BE-AEEB-F6556B8FF1F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E43901A-D7AB-41BE-AEEB-F6556B8FF1F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E43901A-D7AB-41BE-AEEB-F6556B8FF1F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CE4DB5C-B72A-7115-D8C5-8CF4082A25E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CE4DB5C-B72A-7115-D8C5-8CF4082A25E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CE4DB5C-B72A-7115-D8C5-8CF4082A25E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CE4DB5C-B72A-7115-D8C5-8CF4082A25E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BEB2A4A-565C-7917-DD77-0C4CE310CB0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BEB2A4A-565C-7917-DD77-0C4CE310CB0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BEB2A4A-565C-7917-DD77-0C4CE310CB0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BEB2A4A-565C-7917-DD77-0C4CE310CB0C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C102F243-1405-406D-9EF4-F8B5F552E015}
+	EndGlobalSection
+EndGlobal
