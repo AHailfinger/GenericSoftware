@@ -8,6 +8,7 @@ using EnergyAutomate.Data;
 using Growatt.OSS;
 using Tibber.Sdk;
 using System.Net.Http.Headers;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace EnergyAutomate;
 
@@ -54,7 +55,6 @@ public class Program
 
         // Registrieren des Hintergrunddienstes
         builder.Services.AddHostedService<ApiBackgroundService>();
-
         builder.Services.AddBlazorBootstrap();
 
         var app = builder.Build();

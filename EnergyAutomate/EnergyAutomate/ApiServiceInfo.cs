@@ -6,16 +6,46 @@ using Tibber.Sdk;
 public class ApiServiceInfo
 {
     public bool AutoMode { get; set; }
+
     public int AvgPowerLoadSeconds { get; set; } = 10;
-    public int ApiLockSeconds { get; set; } = 5;
+
+    public int ApiLockSeconds { get; set; } = 10;
+
+    public int ApiUpperLimit { get; set; } = 0;
+    public int ApiLowerLimit { get; set; } = 0;
+    public int ApiOffsetAvg { get; set; } = 25;
+
+    public int ApiTotalAvg 
+    {
+        get
+        {
+            return apiTotalAvg;
+        }
+        set
+        {
+            if (apiTotalAvg != value)
+                ApiTotalAvgChanged?.Invoke(this, new EventArgs());
+            apiTotalAvg = value;
+        }
+    }
+    private int apiTotalAvg = 0;
+
+    public event EventHandler? ApiTotalAvgChanged;
 
     public List<DateTime> DataReads { get; set; } = [];
+
+    public List<RealTimeMeasurementExtention> RealTimeMeasurementExtentions { get; set; } = [];
+    
     public List<ApiLastValueChange> LastValueChange { get; set; } = [];
 
     public ObservableCollection<Device> Devices { get; set; } = new ObservableCollection<Device>();
+    
     public ObservableCollection<DeviceNoahInfo> DeviceNoahInfo { get; set; } = new ObservableCollection<DeviceNoahInfo>();
+    
     public ObservableCollection<DeviceNoahLastData> DeviceNoahLastData { get; set; } = new ObservableCollection<DeviceNoahLastData>();
+    
     public ObservableCollection<RealTimeMeasurement> RealTimeMeasurements { get; set; } = new ObservableCollection<RealTimeMeasurement>();
+    
     public ObservableCollection<ApiPrice> Prices { get; set; } = new ObservableCollection<ApiPrice>();
 
     public delegate Task RefreshDeviceListHandler(object sender, EventArgs e);
@@ -66,10 +96,10 @@ public class ApiServiceInfo
     {
         var priceDates = Prices.GroupBy(x => x.StartsAt.Date).ToList();
         var result = priceDates.OrderByDescending(x => x.Key).Take(2);
-        var today = result.FirstOrDefault()?.Key;
-        var tomorrow = result.LastOrDefault()?.Key;
-        var dataToday = today.HasValue ? Prices.Where(x => x.StartsAt.Date == today).OrderBy(x => x.StartsAt).Select(x => (double?)x.Total).ToList() : new List<double?>();
-        var dataTomorrow = tomorrow.HasValue ? Prices.Where(x => x.StartsAt.Date == tomorrow).OrderBy(x => x.StartsAt).Select(x => (double?)x.Total).ToList() : new List<double?>();
+        var today = result.OrderBy(x => x.Key).FirstOrDefault()?.Key;
+        var tomorrow = result.OrderBy(x => x.Key).LastOrDefault()?.Key;
+        var dataToday = today.HasValue ? Prices.Where(x => x.StartsAt.Date == today.Value.Date).OrderBy(x => x.StartsAt).Select(x => (double?)x.Total).ToList() : new List<double?>();
+        var dataTomorrow = tomorrow.HasValue ? Prices.Where(x => x.StartsAt.Date == tomorrow.Value.Date).OrderBy(x => x.StartsAt).Select(x => (double?)x.Total).ToList() : new List<double?>();
         var avgToday = dataToday.Any() ? dataToday.Average() : 0;
         var avgTomorrow = dataTomorrow.Any() ? dataTomorrow.Average() : 0;
 

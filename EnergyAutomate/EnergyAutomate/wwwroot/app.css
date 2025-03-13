@@ -63,3 +63,8 @@ h1:focus {
     height: 50vh !important;
     width: calc(50vw -250);
 }
+
+.nav-center {
+    justify-content: center; /* Zentriert die child divs horizontal */
+    align-items: center;
+}

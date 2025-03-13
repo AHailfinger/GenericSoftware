@@ -1,4 +1,5 @@
-﻿using EnergyAutomate.Data;
+﻿using EnergyAutomate;
+using EnergyAutomate.Data;
 using Growatt.OSS;
 using Tibber.Sdk;
 
@@ -32,6 +33,7 @@ public partial class ApiService
             var dbContext = GetDbContext();
 
             ApiServiceInfo.RealTimeMeasurements.Add(value);
+            ApiServiceInfo.RealTimeMeasurementExtentions.Add(new RealTimeMeasurementExtention() { TimeStamp = value.Timestamp, UpperLimit = ApiServiceInfo.ApiUpperLimit, LowerLimit = ApiServiceInfo.ApiLowerLimit });
             dbContext.RealTimeMeasurements.Add(value); // Speichern in der Datenbank
 
             dbContext.SaveChanges(); // Änderungen speichern

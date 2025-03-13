@@ -1,12 +1,15 @@
+using BlazorBootstrap;
 using EnergyAutomate;
 using EnergyAutomate.Data;
 using Growatt.OSS;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Claims;
 using Tibber.Sdk;
 
 public partial class ApiService : IDisposable
@@ -76,15 +79,24 @@ public partial class ApiService : IDisposable
                 .Select(x => x.PowerProduction)
                 .ToList();
 
-            var averageProductionLastSeconds = lastSecondsProduction.Any() ? lastSecondsProduction.Average() : 0;
+            var averageProductionLastSeconds = lastSecondsProduction.Any() ? (int?)(lastSecondsProduction.Average()) ?? 0 : 0;
 
             Debug.WriteLine($"avgConsumptionLastSeconds: {averageConsumptionLastSeconds}, avgProductionLastSeconds: {averageProductionLastSeconds}");
-            
+
             var lastPowerAvgValue = ApiServiceInfo.LastPowerAvgValue();
+
+            ApiServiceInfo.ApiTotalAvg = (int)(averageConsumptionLastSeconds - averageProductionLastSeconds);
 
             // Prüfe, ob der aktuelle Preis über dem Tagesdurchschnitt liegt
             if (currentPrice.HasValue && currentPrice.Value >= avgToday)
             {
+                int sumBatteryLoad = 0;
+                foreach (var device in ApiServiceInfo.Devices.Where(x => x.DeviceType == "noah"))
+                {
+                    sumBatteryLoad = sumBatteryLoad + ApiServiceInfo.LastValueChange.OrderByDescending(x => x.TS).FirstOrDefault()?.Value ?? 0;
+                }
+                var avgBatteryLoad = (int)(sumBatteryLoad / ApiServiceInfo.Devices.Where(x => x.DeviceType == "noah").Count());
+
                 foreach (var device in ApiServiceInfo.Devices)
                 {
                     var lastPowerValue = ApiServiceInfo.LastPowerValue(device.DeviceSn);
@@ -94,18 +106,20 @@ public partial class ApiService : IDisposable
 
                     int newPowerValue = ApiServiceInfo.LastPowerValue(device.DeviceSn);
 
-                    // Prüfe, ob der aktuelle Preis über dem Tagesdurchschnitt liegt
+                    ApiServiceInfo.ApiUpperLimit = 25 + ApiServiceInfo.ApiOffsetAvg;
+                    ApiServiceInfo.ApiLowerLimit = -25 + ApiServiceInfo.ApiOffsetAvg;
 
-                    if (averageConsumptionLastSeconds > 50)
+                    // Prüfe, ob der aktuelle Preis über dem Tagesdurchschnitt liegt
+                    if (ApiServiceInfo.ApiTotalAvg > ApiServiceInfo.ApiUpperLimit)
                     {
                         newPowerValue = lastPowerValue + 25;
                     }
-                    else if (averageConsumptionLastSeconds < 25 && averageProductionLastSeconds > 25)
+                    else if (ApiServiceInfo.ApiTotalAvg < ApiServiceInfo.ApiLowerLimit)
                     {
                         newPowerValue = lastPowerValue - 25;
                     }
 
-                    var lastSecondsNotChanged = !ApiServiceInfo.LastValueChange.Any(x => x.DeviceSn == device.DeviceSn && x.TS > DateTime.Now.AddSeconds(ApiServiceInfo.ApiLockSeconds * (-1)));
+                    var lastSecondsNotChanged = ApiServiceInfo.ApiLockSeconds == 0 ? true : !ApiServiceInfo.LastValueChange.Any(x => x.DeviceSn == device.DeviceSn && x.TS > DateTime.Now.AddSeconds(ApiServiceInfo.ApiLockSeconds * (-1)));
                     var powerChanged = newPowerValue != lastPowerValue;
 
                     if (newPowerValue <= 450 && lastSecondsNotChanged && powerChanged)
