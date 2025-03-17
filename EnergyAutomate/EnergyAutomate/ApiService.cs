@@ -106,23 +106,25 @@ public partial class ApiService : IDisposable
 
                     int newPowerValue = ApiServiceInfo.LastPowerValue(device.DeviceSn);
 
-                    ApiServiceInfo.ApiUpperLimit = 25 + ApiServiceInfo.ApiOffsetAvg;
-                    ApiServiceInfo.ApiLowerLimit = -25 + ApiServiceInfo.ApiOffsetAvg;
+                    var factor = Math.Abs((int)(ApiServiceInfo.ApiOffsetAvg - ApiServiceInfo.ApiTotalAvg / 2));
+                    int roundedFactor = (int)(Math.Round(factor / 5.0) * 5);
 
                     // Prüfe, ob der aktuelle Preis über dem Tagesdurchschnitt liegt
-                    if (ApiServiceInfo.ApiTotalAvg > ApiServiceInfo.ApiUpperLimit)
+                    if (ApiServiceInfo.ApiTotalAvg > ApiServiceInfo.ApiOffsetAvg)
                     {
-                        newPowerValue = lastPowerValue + 25;
+                        newPowerValue = lastPowerValue + roundedFactor;
                     }
-                    else if (ApiServiceInfo.ApiTotalAvg < ApiServiceInfo.ApiLowerLimit)
+                    else if (ApiServiceInfo.ApiTotalAvg < ApiServiceInfo.ApiOffsetAvg)
                     {
-                        newPowerValue = lastPowerValue - 25;
+                        newPowerValue = lastPowerValue - roundedFactor;
                     }
 
                     var lastSecondsNotChanged = ApiServiceInfo.ApiLockSeconds == 0 ? true : !ApiServiceInfo.LastValueChange.Any(x => x.DeviceSn == device.DeviceSn && x.TS > DateTime.Now.AddSeconds(ApiServiceInfo.ApiLockSeconds * (-1)));
                     var powerChanged = newPowerValue != lastPowerValue;
 
-                    if (newPowerValue <= 450 && lastSecondsNotChanged && powerChanged)
+                    if(newPowerValue > 450) newPowerValue = 450; 
+
+                    if (newPowerValue <= 450 && newPowerValue != lastPowerValue && lastSecondsNotChanged && powerChanged)
                     {
                         ApiServiceInfo.LastValueChange.Add(new ApiLastValueChange()
                         {

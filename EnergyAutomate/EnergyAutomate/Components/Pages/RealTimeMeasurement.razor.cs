@@ -53,8 +53,10 @@ namespace EnergyAutomate.Components.Pages
 
         private readonly IEnumerable<TickMark> ApiLockSecondsTickList = new List<TickMark>
         {
-            new(){ Label = "5", Value = "5"},
-            new(){ Label = "10", Value = "10"},
+            new(){ Label = "3", Value = "3"},
+            new(){ Label = "6", Value = "6"},
+            new(){ Label = "9", Value = "9"},
+            new(){ Label = "12", Value = "12"},
             new(){ Label = "15", Value = "15"}
         };
 
@@ -113,8 +115,7 @@ namespace EnergyAutomate.Components.Pages
 
             // Berechne den Durchschnittsverbrauch für jeden Datenpunkt basierend auf den letzten 30 Sekunden
             var avgPowerLoad = new List<double?>();
-            var upperLimitList = new List<double?>();
-            var lowerLimitList = new List<double?>();
+            var avgOffSetList = new List<double?>();
 
             foreach (var dataPoint in dataSource)
             {
@@ -123,8 +124,7 @@ namespace EnergyAutomate.Components.Pages
                 var avgPowerProduction = lastSecondsData.Any() ? lastSecondsData.Average(x => (double?)x.PowerProduction) : 0;
                 avgPowerLoad.Add((avgPower - avgPowerProduction) / 2);
                 var extData = ApiServiceInfo.RealTimeMeasurementExtentions.Find(x => x.TimeStamp == dataPoint.Timestamp);
-                upperLimitList.Add(extData?.UpperLimit);
-                lowerLimitList.Add(extData?.LowerLimit);                                
+                avgOffSetList.Add(ApiServiceInfo.ApiOffsetAvg);                               
             }
 
             realTimeMeasurementData = new ChartData
@@ -168,25 +168,16 @@ namespace EnergyAutomate.Components.Pages
                     },
                     new LineChartDataset()
                     {
-                        Label = "UpperLimit",
-                        Data = upperLimitList,
+                        Label = "AvgOffSet",
+                        Data = avgOffSetList,
+                        BackgroundColor= "rgb(255, 0, 0)",
                         BorderColor = "rgb(255, 0, 0)",
                         BorderWidth = 1,
                         PointRadius = new List<double>() { 0 },
                         Stepped = true,
                         Order = 1
                     },
-                    new LineChartDataset()
-                    {
-                        Label = "LowerLimit",
-                        Data = lowerLimitList,
-                        BorderColor = "rgb(255, 0, 0)",                        
-                        BorderWidth = 1,
-                        PointRadius = new List<double>() { 0 },
-                        Stepped = true,
-                        Order = 1
-                    }
-               }
+                }
             };
         }
 
@@ -203,7 +194,7 @@ namespace EnergyAutomate.Components.Pages
             List<string> months = new List<string> { "Today", "Tomorrow" };
             var dataPoints = dataToday.Concat(dataTomorrow).ToList();
 
-            var dataCurrentHour = dataPoints.Select(point => dataPoints.IndexOf(point) < 24 && (hours[dataPoints.IndexOf(point)] == DateTime.Now.Hour || hours[dataPoints.IndexOf(point) + 1] == DateTime.Now.Hour) ? point : null).ToList();
+            var dataCurrentHour = dataPoints.Select(point => dataPoints.IndexOf(point) < 24 && (hours[dataPoints.IndexOf(point)] == DateTime.Now.Hour + 1 || hours[dataPoints.IndexOf(point) +1] == DateTime.Now.Hour + 1) ? point : null).ToList();
 
             var dataAvgTodayPoints = dataToday.Select(point => point > avgToday ? avgToday : point).ToList();
             var dataAvgTomorrowPoints = dataTomorrow.Select(point => point > avgTomorrow ? avgTomorrow : point).ToList();

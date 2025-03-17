@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tibber.Sdk", "Tibber.Sdk\Ti
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Growatt.Sdk", "Growatt.Sdk\Growatt.Sdk.csproj", "{0BEB2A4A-565C-7917-DD77-0C4CE310CB0C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlazorMonaco", "BlazorMonaco\BlazorMonaco.csproj", "{98942119-F8FC-D89A-EFBF-3182C3611B88}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{0BEB2A4A-565C-7917-DD77-0C4CE310CB0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0BEB2A4A-565C-7917-DD77-0C4CE310CB0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0BEB2A4A-565C-7917-DD77-0C4CE310CB0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98942119-F8FC-D89A-EFBF-3182C3611B88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98942119-F8FC-D89A-EFBF-3182C3611B88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98942119-F8FC-D89A-EFBF-3182C3611B88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98942119-F8FC-D89A-EFBF-3182C3611B88}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

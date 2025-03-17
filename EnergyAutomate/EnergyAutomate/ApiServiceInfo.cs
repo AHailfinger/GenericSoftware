@@ -7,12 +7,10 @@ public class ApiServiceInfo
 {
     public bool AutoMode { get; set; }
 
-    public int AvgPowerLoadSeconds { get; set; } = 10;
+    public int AvgPowerLoadSeconds { get; set; } = 20;
 
-    public int ApiLockSeconds { get; set; } = 10;
+    public int ApiLockSeconds { get; set; } = 6;
 
-    public int ApiUpperLimit { get; set; } = 0;
-    public int ApiLowerLimit { get; set; } = 0;
     public int ApiOffsetAvg { get; set; } = 25;
 
     public int ApiTotalAvg 

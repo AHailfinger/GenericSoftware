@@ -4,8 +4,8 @@
     {
         public DateTimeOffset TimeStamp { get; set; }
 
-        public int UpperLimit { get; set; }
+        public int AvgOffSet { get; set; }
 
-        public int LowerLimit { get; set; }
+        public int PowerValue { get; set; }
     }
 }

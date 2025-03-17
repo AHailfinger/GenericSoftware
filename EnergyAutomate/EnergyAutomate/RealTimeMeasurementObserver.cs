@@ -33,7 +33,7 @@ public partial class ApiService
             var dbContext = GetDbContext();
 
             ApiServiceInfo.RealTimeMeasurements.Add(value);
-            ApiServiceInfo.RealTimeMeasurementExtentions.Add(new RealTimeMeasurementExtention() { TimeStamp = value.Timestamp, UpperLimit = ApiServiceInfo.ApiUpperLimit, LowerLimit = ApiServiceInfo.ApiLowerLimit });
+            ApiServiceInfo.RealTimeMeasurementExtentions.Add(new RealTimeMeasurementExtention() { TimeStamp = value.Timestamp, AvgOffSet = ApiServiceInfo.ApiOffsetAvg });
             dbContext.RealTimeMeasurements.Add(value); // Speichern in der Datenbank
 
             dbContext.SaveChanges(); // Änderungen speichern
