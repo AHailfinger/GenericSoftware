@@ -4,6 +4,7 @@ using EnergyAutomate.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnergyAutomate.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250318165507_ChangeTables4")]
+    partial class ChangeTables4
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -572,13 +575,19 @@ namespace EnergyAutomate.Migrations
                     b.Property<decimal>("AveragePower")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("AvgOutputValue")
+                    b.Property<int>("AvgLastPowerValue")
                         .HasColumnType("int");
 
-                    b.Property<int>("AvgPowerLoad")
+                    b.Property<int>("AvgOffSet")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AvgPowerLoadValue")
                         .HasColumnType("int");
 
                     b.Property<int>("AvgPowerValue")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AvgTotalValue")
                         .HasColumnType("int");
 
                     b.Property<string>("Currency")
@@ -625,15 +634,6 @@ namespace EnergyAutomate.Migrations
 
                     b.Property<decimal?>("PowerReactive")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("SettingLockSeconds")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SettingOffSetAvg")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SettingPowerLoadSeconds")
-                        .HasColumnType("int");
 
                     b.Property<int?>("SignalStrength")
                         .HasColumnType("int");

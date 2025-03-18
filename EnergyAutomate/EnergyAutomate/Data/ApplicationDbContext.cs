@@ -14,10 +14,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     }
 
     public DbSet<Device> Devices { get; set; }
+
     public DbSet<DeviceNoahInfo> DeviceNoahInfo { get; set; }
+
     public DbSet<DeviceNoahLastData> DeviceNoahLastData { get; set; }
 
-    public DbSet<RealTimeMeasurement> RealTimeMeasurements { get; set; }
+    public DbSet<RealTimeMeasurementExtention> RealTimeMeasurements { get; set; }
+
     public DbSet<ApiPrice> Prices { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -29,7 +32,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<DeviceNoahInfo>().Ignore(x => x.TimeSegments);
         modelBuilder.Entity<DeviceNoahLastData>().HasKey(x => new { x.deviceSn, x.time });
 
-        modelBuilder.Entity<RealTimeMeasurement>().HasKey(x => new { x.Timestamp });
+        modelBuilder.Entity<RealTimeMeasurementExtention>().HasKey(x => new { x.Timestamp });
         modelBuilder.Entity<ApiPrice>().HasKey(x => new { x.StartsAt });
 
         // Set all string properties to be nullable

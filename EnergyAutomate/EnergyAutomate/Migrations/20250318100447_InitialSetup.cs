@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace EnergyAutomate.Migrations
 {
     /// <inheritdoc />
-    public partial class Init : Migration
+    public partial class InitialSetup : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -244,6 +244,9 @@ namespace EnergyAutomate.Migrations
                 columns: table => new
                 {
                     Timestamp = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    AvgOffSet = table.Column<int>(type: "int", nullable: false),
+                    PowerOutValue = table.Column<int>(type: "int", nullable: false),
+                    AvgTotalValue = table.Column<int>(type: "int", nullable: false),
                     Power = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     LastMeterConsumption = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     AccumulatedConsumption = table.Column<decimal>(type: "decimal(18,2)", nullable: false),

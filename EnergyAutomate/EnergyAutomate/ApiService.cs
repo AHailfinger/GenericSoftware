@@ -5,10 +5,12 @@ using Growatt.OSS;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Data.Common;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Numerics;
 using System.Security.Claims;
 using Tibber.Sdk;
 
@@ -30,12 +32,70 @@ public partial class ApiService : IDisposable
 
         RealTimeMeasurement = new RealTimeMeasurementObserver(serviceProvider, ApiServiceInfo);
         RealTimeMeasurement.OnNewRealTimeMeasurement += RealTimeMeasurement_OnNewRealTimeMeasurement;
+
+
     }
 
     private DateTime? lastLimitError = default;
 
+    private bool isRunning = false;
+    private int penaltyFrequentlyAccess = 0;
+
+    private async Task CheckGrowattValueChangeQueue()
+    {
+        if (isRunning)
+            return;
+
+        isRunning = true;
+
+        while (ApiServiceInfo.GrowattValueChangeQueue.Count > 0)
+        {
+            ApiLastValueChange? apiLastValueChange;
+            ApiServiceInfo.GrowattValueChangeQueue.TryDequeue(out apiLastValueChange);
+            if (apiLastValueChange != null)
+            {
+                await Send(apiLastValueChange);
+            }
+            await Task.Delay(ApiServiceInfo.SettingLockSeconds + penaltyFrequentlyAccess);
+        }
+
+        isRunning = false;
+    }
+
+    private async Task Send(ApiLastValueChange apiLastValueChange)
+    {
+        try
+        {
+            if (ApiServiceInfo.LastOutputValue(apiLastValueChange.DeviceSn) != apiLastValueChange.Value)
+            {
+                await SetPowerDeviceNoahAsync(apiLastValueChange.DeviceSn, apiLastValueChange.Value);
+                ApiServiceInfo.OutputValueValueChange.Add(apiLastValueChange);
+                Debug.WriteLine($"{apiLastValueChange.DeviceSn}, {apiLastValueChange.Value}");
+                ApiServiceInfo.AvgOutputValue = ApiServiceInfo.AvgLastOutputValue();
+            } 
+            if(penaltyFrequentlyAccess >= 10)
+                penaltyFrequentlyAccess -= 10;
+        }
+        catch (Exception ex)
+        {
+            ApiServiceInfo.GrowattValueChangeQueue.Clear();
+            penaltyFrequentlyAccess += 50;
+
+            Debug.WriteLine($"Growatt Api Error: {ex.Message}");
+            Debug.WriteLine($"SettingLockSeconds: {ApiServiceInfo.SettingLockSeconds}, Penalty: {penaltyFrequentlyAccess}");
+        }
+    }
+
     private async Task RealTimeMeasurement_OnNewRealTimeMeasurement(object sender, RealTimeMeasurement value)
     {
+        var dataSource = ApiServiceInfo.RealTimeMeasurement.OrderByDescending(x => x.Timestamp).Take(61).Reverse().ToList();
+
+        var lastSecondsData = dataSource.Where(x => x.Timestamp >= value.Timestamp.AddSeconds(ApiServiceInfo.SettingPowerLoadSeconds * (-1)) && x.Timestamp <= value.Timestamp).ToList();
+        var avgPower = lastSecondsData.Any() ? lastSecondsData.Average(x => (double?)x.Power) : 0;
+        var avgPowerProduction = lastSecondsData.Any() ? lastSecondsData.Average(x => (double?)x.PowerProduction) : 0;
+
+        ApiServiceInfo.AvgPowerValue = (int)(avgPower - avgPowerProduction);
+
         if (ApiServiceInfo.AutoMode)
         {
             var count = ApiServiceInfo.DataReads.Where(x => x > DateTime.Now.AddMinutes(-5)).Count();
@@ -66,26 +126,23 @@ public partial class ApiService : IDisposable
             var currentPrice = (double?)dataToday.First(p => p.StartsAt.Hour == DateTime.Now.Hour).Total;
 
             // Berechne den durchschnittlichen Verbrauch in den letzten 30 Sekunden
-            var lastSecondsConsuption = ApiServiceInfo.RealTimeMeasurements
-                .Where(x => x.Timestamp >= DateTimeOffset.Now.AddSeconds(ApiServiceInfo.AvgPowerLoadSeconds * (-1)))
+            var lastSecondsConsuption = ApiServiceInfo.RealTimeMeasurement
+                .Where(x => x.Timestamp >= DateTimeOffset.Now.AddSeconds(ApiServiceInfo.SettingPowerLoadSeconds * (-1)))
                 .Select(x => x.Power)
                 .ToList();
 
             var averageConsumptionLastSeconds = lastSecondsConsuption.Any() ? lastSecondsConsuption.Average() : 0;
 
             // Berechne den durchschnittlichen Verbrauch in den letzten 30 Sekunden
-            var lastSecondsProduction = ApiServiceInfo.RealTimeMeasurements
-                .Where(x => x.Timestamp >= DateTimeOffset.Now.AddSeconds(ApiServiceInfo.AvgPowerLoadSeconds * (-1)))
+            var lastSecondsProduction = ApiServiceInfo.RealTimeMeasurement
+                .Where(x => x.Timestamp >= DateTimeOffset.Now.AddSeconds(ApiServiceInfo.SettingPowerLoadSeconds * (-1)))
                 .Select(x => x.PowerProduction)
                 .ToList();
 
             var averageProductionLastSeconds = lastSecondsProduction.Any() ? (int?)(lastSecondsProduction.Average()) ?? 0 : 0;
+            var lastPowerAvgValue = ApiServiceInfo.AvgLastOutputValue();
 
-            Debug.WriteLine($"avgConsumptionLastSeconds: {averageConsumptionLastSeconds}, avgProductionLastSeconds: {averageProductionLastSeconds}");
-
-            var lastPowerAvgValue = ApiServiceInfo.LastPowerAvgValue();
-
-            ApiServiceInfo.ApiTotalAvg = (int)(averageConsumptionLastSeconds - averageProductionLastSeconds);
+            ApiServiceInfo.AvgPowerLoad = (int)(averageConsumptionLastSeconds - averageProductionLastSeconds);
 
             // Prüfe, ob der aktuelle Preis über dem Tagesdurchschnitt liegt
             if (currentPrice.HasValue && currentPrice.Value >= avgToday)
@@ -93,57 +150,71 @@ public partial class ApiService : IDisposable
                 int sumBatteryLoad = 0;
                 foreach (var device in ApiServiceInfo.Devices.Where(x => x.DeviceType == "noah"))
                 {
-                    sumBatteryLoad = sumBatteryLoad + ApiServiceInfo.LastValueChange.OrderByDescending(x => x.TS).FirstOrDefault()?.Value ?? 0;
+                    sumBatteryLoad = sumBatteryLoad + ApiServiceInfo.OutputValueValueChange.OrderByDescending(x => x.TS).FirstOrDefault()?.Value ?? 0;
                 }
                 var avgBatteryLoad = (int)(sumBatteryLoad / ApiServiceInfo.Devices.Where(x => x.DeviceType == "noah").Count());
 
-                foreach (var device in ApiServiceInfo.Devices)
+                var countNoah = ApiServiceInfo.Devices.Where(x => x.DeviceType == "noah").Count();
+
+                var lastPowerValue = (int)(Math.Round(ApiServiceInfo.AvgLastOutputValue() / 5.0) * 5);
+
+                foreach (var device in ApiServiceInfo.Devices.Where(x => x.DeviceType == "noah"))
                 {
-                    var lastPowerValue = ApiServiceInfo.LastPowerValue(device.DeviceSn);
+                    int newPowerValue = lastPowerValue;
 
-                    if (lastPowerValue == 0)
-                        lastPowerValue = (int)lastPowerAvgValue * 2;
-
-                    int newPowerValue = ApiServiceInfo.LastPowerValue(device.DeviceSn);
-
-                    var factor = Math.Abs((int)(ApiServiceInfo.ApiOffsetAvg - ApiServiceInfo.ApiTotalAvg / 2));
-                    int roundedFactor = (int)(Math.Round(factor / 5.0) * 5);
+                    ApiServiceInfo.AvgPowerLoadFactor = Math.Abs(ApiServiceInfo.AvgPowerValue) switch
+                    {
+                        > 200 => 5,
+                        > 150 => 4,
+                        > 100 => 3,
+                        > 50 => 2,
+                        _ => 1
+                    };
 
                     // Prüfe, ob der aktuelle Preis über dem Tagesdurchschnitt liegt
-                    if (ApiServiceInfo.ApiTotalAvg > ApiServiceInfo.ApiOffsetAvg)
+                    if (ApiServiceInfo.AvgPowerLoad > ApiServiceInfo.SettingOffsetAvg)
                     {
-                        newPowerValue = lastPowerValue + roundedFactor;
+                        newPowerValue = lastPowerValue + 5 * ApiServiceInfo.AvgPowerLoadFactor;
                     }
-                    else if (ApiServiceInfo.ApiTotalAvg < ApiServiceInfo.ApiOffsetAvg)
+                    else if (ApiServiceInfo.AvgPowerLoad < ApiServiceInfo.SettingOffsetAvg)
                     {
-                        newPowerValue = lastPowerValue - roundedFactor;
+                        newPowerValue = lastPowerValue - 5 * ApiServiceInfo.AvgPowerLoadFactor;
                     }
 
-                    var lastSecondsNotChanged = ApiServiceInfo.ApiLockSeconds == 0 ? true : !ApiServiceInfo.LastValueChange.Any(x => x.DeviceSn == device.DeviceSn && x.TS > DateTime.Now.AddSeconds(ApiServiceInfo.ApiLockSeconds * (-1)));
+                    var abs = Math.Abs(ApiServiceInfo.AvgPowerLoad - ApiServiceInfo.SettingOffsetAvg);
+
                     var powerChanged = newPowerValue != lastPowerValue;
 
-                    if(newPowerValue > 450) newPowerValue = 450; 
+                    newPowerValue = newPowerValue > 450 ? 450 : (int)(Math.Round(newPowerValue / 5.0) * 5);
 
-                    if (newPowerValue <= 450 && newPowerValue != lastPowerValue && lastSecondsNotChanged && powerChanged)
+                    if (newPowerValue <= 450 && powerChanged && abs > ApiServiceInfo.SettingOffsetAvg * 2)
                     {
-                        ApiServiceInfo.LastValueChange.Add(new ApiLastValueChange()
+                        ApiServiceInfo.GrowattValueChangeQueue.Enqueue(new ApiLastValueChange()
                         {
                             DeviceSn = device.DeviceSn,
                             TS = DateTime.Now,
                             Value = newPowerValue
                         });
-                        try
-                        {
-                            await SetPowerDeviceNoahAsync(device.DeviceSn, newPowerValue);
-                            Debug.WriteLine($"{device.DeviceSn}, {newPowerValue}");
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"Growatt Api Error: {ex.Message}");
-                        }
                     }
                     else
-                        Debug.WriteLine($"DeviceSn: {device.DeviceSn} L5sChanged: {lastSecondsNotChanged}, PowerChanged: {powerChanged}");
+                        Debug.WriteLine($"DeviceSn: {device.DeviceSn} PowerChanged: {powerChanged}, Abs: {abs} > {ApiServiceInfo.SettingOffsetAvg * 2}");
+                }
+
+                await CheckGrowattValueChangeQueue();
+            }
+        }
+        else
+        {
+            foreach (var device in ApiServiceInfo.Devices.Where(x => x.DeviceType == "noah"))
+            {
+                if (ApiServiceInfo.LastOutputValue(device.DeviceSn) > 0)
+                {
+                    ApiServiceInfo.GrowattValueChangeQueue.Enqueue(new ApiLastValueChange()
+                    {
+                        DeviceSn = device.DeviceSn,
+                        TS = DateTime.Now,
+                        Value = 0
+                    });
                 }
             }
         }
@@ -203,13 +274,12 @@ public partial class ApiService : IDisposable
         }
 
         var realTimeMeasurements = await dbContext.RealTimeMeasurements.ToListAsync();
-        ApiServiceInfo.RealTimeMeasurements.Clear();
+        ApiServiceInfo.RealTimeMeasurement.Clear();
         foreach (var measurement in realTimeMeasurements)
         {
-            ApiServiceInfo.RealTimeMeasurements.Add(measurement);
+            ApiServiceInfo.RealTimeMeasurement.Add(measurement);
         }
     }
-
 
     #region Tibber
 

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnergyAutomate.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250311160159_Init")]
-    partial class Init
+    [Migration("20250318170744_ChangeTables5")]
+    partial class ChangeTables5
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -549,6 +549,112 @@ namespace EnergyAutomate.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("EnergyAutomate.RealTimeMeasurementExtention", b =>
+                {
+                    b.Property<DateTimeOffset>("Timestamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("AccumulatedConsumption")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("AccumulatedConsumptionLastHour")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("AccumulatedCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("AccumulatedProduction")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("AccumulatedProductionLastHour")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("AccumulatedReward")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("AveragePower")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("AvgOutputValue")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AvgPowerLoad")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AvgPowerValue")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Currency")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("CurrentPhase1")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("CurrentPhase2")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("CurrentPhase3")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("LastMeterConsumption")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("LastMeterProduction")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MaxPower")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MaxPowerProduction")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MinPower")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MinPowerProduction")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Power")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("PowerFactor")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("PowerProduction")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("PowerProductionReactive")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("PowerReactive")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SettingLockSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SettingOffSetAvg")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SettingPowerLoadSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SignalStrength")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("VoltagePhase1")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("VoltagePhase2")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("VoltagePhase3")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Timestamp");
+
+                    b.ToTable("RealTimeMeasurements");
+                });
+
             modelBuilder.Entity("Growatt.OSS.Device", b =>
                 {
                     b.Property<string>("DeviceSn")
@@ -693,94 +799,6 @@ namespace EnergyAutomate.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
-                });
-
-            modelBuilder.Entity("Tibber.Sdk.RealTimeMeasurement", b =>
-                {
-                    b.Property<DateTimeOffset>("Timestamp")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<decimal>("AccumulatedConsumption")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("AccumulatedConsumptionLastHour")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("AccumulatedCost")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("AccumulatedProduction")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("AccumulatedProductionLastHour")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("AccumulatedReward")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("AveragePower")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Currency")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("CurrentPhase1")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("CurrentPhase2")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("CurrentPhase3")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("LastMeterConsumption")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("LastMeterProduction")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("MaxPower")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("MaxPowerProduction")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("MinPower")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("MinPowerProduction")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("Power")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("PowerFactor")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("PowerProduction")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("PowerProductionReactive")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("PowerReactive")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int?>("SignalStrength")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("VoltagePhase1")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("VoltagePhase2")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("VoltagePhase3")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Timestamp");
-
-                    b.ToTable("RealTimeMeasurements");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

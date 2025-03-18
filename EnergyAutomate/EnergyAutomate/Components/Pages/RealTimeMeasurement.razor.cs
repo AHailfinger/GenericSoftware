@@ -18,11 +18,11 @@ namespace EnergyAutomate.Components.Pages
 
         protected override void OnInitialized()
         {
-            ApiServiceInfo.RealTimeMeasurements.CollectionChanged += RealTimeMeasurement_CollectionChanged;
+            ApiServiceInfo.RealTimeMeasurement.CollectionChanged += RealTimeMeasurement_CollectionChanged;
             ApiServiceInfo.Prices.CollectionChanged += Price_CollectionChanged;
             ApiServiceInfo.Devices.CollectionChanged += Devices_CollectionChanged;
             ApiServiceInfo.DeviceNoahLastData.CollectionChanged += DeviceNoahLastData_CollectionChanged;
-            ApiServiceInfo.ApiTotalAvgChanged += ApiServiceInfo_ApiTotalAvgChanged;
+            ApiServiceInfo.AvgOutputValueChanged += ApiServiceInfo_ApiTotalAvgChanged;
         }
 
         private async void ApiServiceInfo_ApiTotalAvgChanged(object? sender, EventArgs e)
@@ -53,11 +53,16 @@ namespace EnergyAutomate.Components.Pages
 
         private readonly IEnumerable<TickMark> ApiLockSecondsTickList = new List<TickMark>
         {
-            new(){ Label = "3", Value = "3"},
-            new(){ Label = "6", Value = "6"},
-            new(){ Label = "9", Value = "9"},
-            new(){ Label = "12", Value = "12"},
-            new(){ Label = "15", Value = "15"}
+            new(){ Label = "100", Value = "100"},
+            new(){ Label = "200", Value = "200"},
+            new(){ Label = "300", Value = "300"},
+            new(){ Label = "400", Value = "400"},
+            new(){ Label = "500", Value = "500"},
+            new(){ Label = "600", Value = "600"},
+            new(){ Label = "700", Value = "700"},
+            new(){ Label = "800", Value = "800"},
+            new(){ Label = "900", Value = "900"},
+            new(){ Label = "1000", Value = "1000"}
         };
 
         private readonly IEnumerable<TickMark> ApiOffsetAvgTickList = new List<TickMark>
@@ -88,11 +93,23 @@ namespace EnergyAutomate.Components.Pages
                     await realTimeMeasurementChart.UpdateValuesAsync(realTimeMeasurementData);
                 }
             }
+            if (isDeviceChartInitialized && deviceChart != null)
+            {
+                GetDeviceData();
+                if (deviceData != null)
+                {
+                    await deviceChart.UpdateValuesAsync(deviceData);
+                }
+            }
         }
 
         private LineChart priceChart = default!;
         private ChartData priceData = default!;
         private bool isPriceChartInitialized;
+
+        private LineChart deviceChart = default!;
+        private ChartData deviceData = default!;
+        private bool isDeviceChartInitialized;
 
         private List<string>? PriceBackgroundColors { get; set; }
 
@@ -110,22 +127,7 @@ namespace EnergyAutomate.Components.Pages
 
         private void GetRealTimeMeasurementData()
         {
-            var count = ApiServiceInfo.RealTimeMeasurements.Count;
-            var dataSource = ApiServiceInfo.RealTimeMeasurements.OrderByDescending(x => x.Timestamp).Take(61).Reverse().ToList();
-
-            // Berechne den Durchschnittsverbrauch für jeden Datenpunkt basierend auf den letzten 30 Sekunden
-            var avgPowerLoad = new List<double?>();
-            var avgOffSetList = new List<double?>();
-
-            foreach (var dataPoint in dataSource)
-            {
-                var lastSecondsData = dataSource.Where(x => x.Timestamp >= dataPoint.Timestamp.AddSeconds(ApiServiceInfo.AvgPowerLoadSeconds *(-1)) && x.Timestamp <= dataPoint.Timestamp).ToList();
-                var avgPower = lastSecondsData.Any() ? lastSecondsData.Average(x => (double?)x.Power) : 0;
-                var avgPowerProduction = lastSecondsData.Any() ? lastSecondsData.Average(x => (double?)x.PowerProduction) : 0;
-                avgPowerLoad.Add((avgPower - avgPowerProduction) / 2);
-                var extData = ApiServiceInfo.RealTimeMeasurementExtentions.Find(x => x.TimeStamp == dataPoint.Timestamp);
-                avgOffSetList.Add(ApiServiceInfo.ApiOffsetAvg);                               
-            }
+            var dataSource = ApiServiceInfo.RealTimeMeasurement.OrderByDescending(x => x.Timestamp).Take(61).Reverse().ToList();
 
             realTimeMeasurementData = new ChartData
             {
@@ -142,7 +144,7 @@ namespace EnergyAutomate.Components.Pages
                         HoverBorderWidth = 4,
                         Fill = true,
                         Stepped = true,
-                        Order = 3
+                        Order = 5
                     },
                     new LineChartDataset()
                     {
@@ -154,22 +156,32 @@ namespace EnergyAutomate.Components.Pages
                         HoverBorderWidth = 4,
                         Fill = true,
                         Stepped = true,
+                        Order = 4
+                    },
+                    new LineChartDataset()
+                    {
+                        Label = "AvgPowerValue",
+                        Data = dataSource.Select(x => (double?)x.AvgPowerValue).ToList(),
+                        BackgroundColor = "rgb(0, 0, 0)",
+                        BorderColor = "rgb(0, 0, 0)",
+                        BorderWidth = 2,
+                        PointRadius = new List<double>() { 0 },
                         Order = 2
                     },
                     new LineChartDataset()
                     {
                         Label = "AvgPowerLoad",
-                        Data = avgPowerLoad,
-                        BackgroundColor = "rgb(0, 0, 0)",
-                        BorderColor = "rgb(0, 0, 0)",
+                        Data = dataSource.Select(x => (double?)x.AvgPowerLoad).ToList(),
+                        BackgroundColor = "rgb(125, 125, 125)",
+                        BorderColor = "rgb(125, 125, 125)",
                         BorderWidth = 2,
-                        PointRadius = new List<double>() { 0 },                        
-                        Order = 1
+                        PointRadius = new List<double>() { 0 },
+                        Order = 2
                     },
                     new LineChartDataset()
                     {
-                        Label = "AvgOffSet",
-                        Data = avgOffSetList,
+                        Label = "SettingOffSetAvg",
+                        Data = dataSource.Select(x => (double?)x.SettingOffSetAvg).ToList(),
                         BackgroundColor= "rgb(255, 0, 0)",
                         BorderColor = "rgb(255, 0, 0)",
                         BorderWidth = 1,
@@ -264,6 +276,30 @@ namespace EnergyAutomate.Components.Pages
             };
         }
 
+        private void GetDeviceData()
+        {
+            var dataSource = ApiServiceInfo.RealTimeMeasurement.OrderByDescending(x => x.Timestamp).Take(61).Reverse().ToList();
+
+            deviceData = new ChartData
+            {
+                Labels = dataSource.Select((x, index) => index % 5 == 0 ? x.Timestamp.TimeOfDay.ToString() : string.Empty).ToList(),
+                Datasets = new List<IChartDataset>()
+                {
+                    new LineChartDataset()
+                    {
+                        Label = "AvgOutputValue",
+                        Data = dataSource.Select(x => (double?)x.AvgOutputValue).ToList(),
+                        BackgroundColor = "rgb(0, 255, 0)",
+                        BorderColor = "rgb(0, 255, 0)",
+                        BorderWidth = 2,
+                        PointRadius = new List<double>() { 0 },
+                        Order = 3
+                    }
+
+                }
+            };
+        }
+
         private async Task RenderTibberAsync()
         {
             var realTimeMeasurementChartOptions = new LineChartOptions();
@@ -273,7 +309,6 @@ namespace EnergyAutomate.Components.Pages
             realTimeMeasurementChartOptions.Plugins.Title.Display = true;
             realTimeMeasurementChartOptions.Plugins.Title.Font = new ChartFont { Size = 20 };
             realTimeMeasurementChartOptions.Responsive = true;
-            realTimeMeasurementChartOptions.Scales.X = new ChartAxes() { Min = -800, Max = 8000 };
             realTimeMeasurementChartOptions.Scales.X!.Title = new ChartAxesTitle { Text = "Seconds (one minute)", Display = true };
             realTimeMeasurementChartOptions.Scales.Y!.Title = new ChartAxesTitle { Text = "Watt", Display = true };
             realTimeMeasurementChartOptions.MaintainAspectRatio = false;
@@ -294,6 +329,21 @@ namespace EnergyAutomate.Components.Pages
             GetPriceData();
             await priceChart.InitializeAsync(chartData: priceData, chartOptions: priceChartOptions);
             isPriceChartInitialized = true;
+
+            var deviceChartOptions = new LineChartOptions();
+
+            deviceChartOptions.Interaction.Mode = InteractionMode.Index;
+            deviceChartOptions.Plugins.Title!.Text = $"Device power values";
+            deviceChartOptions.Plugins.Title.Display = true;
+            deviceChartOptions.Plugins.Title.Font = new ChartFont { Size = 20 };
+            deviceChartOptions.Responsive = true;
+            deviceChartOptions.Scales.Y = new ChartAxes() { Min = 0, Max = 800 };
+            deviceChartOptions.Scales.X!.Title = new ChartAxesTitle { Text = "Seconds (one minute)", Display = true };
+            deviceChartOptions.Scales.Y!.Title = new ChartAxesTitle { Text = "Watt", Display = true };
+            deviceChartOptions.MaintainAspectRatio = false;
+            GetDeviceData();
+            await deviceChart.InitializeAsync(chartData: deviceData, chartOptions: deviceChartOptions);
+            isDeviceChartInitialized = true;
 
         }
 
@@ -337,11 +387,11 @@ namespace EnergyAutomate.Components.Pages
 
         public void Dispose()
         {
-            ApiServiceInfo.RealTimeMeasurements.CollectionChanged -= RealTimeMeasurement_CollectionChanged;
+            ApiServiceInfo.RealTimeMeasurement.CollectionChanged -= RealTimeMeasurement_CollectionChanged;
             ApiServiceInfo.Prices.CollectionChanged -= Price_CollectionChanged;
             ApiServiceInfo.Devices.CollectionChanged -= Devices_CollectionChanged;
             ApiServiceInfo.DeviceNoahLastData.CollectionChanged -= DeviceNoahLastData_CollectionChanged;
-            ApiServiceInfo.ApiTotalAvgChanged -= ApiServiceInfo_ApiTotalAvgChanged;
+            ApiServiceInfo.AvgOutputValueChanged -= ApiServiceInfo_ApiTotalAvgChanged;
         }
 
     }

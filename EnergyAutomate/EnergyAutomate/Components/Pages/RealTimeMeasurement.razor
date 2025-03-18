@@ -16,7 +16,7 @@
             <Tabs @ref="tabsTibberRef" NavStyle="NavStyle.Underline" Class="nav-center">
                 <Tab Title="Diagram">
                     <Content>
-                        @if (ApiServiceInfo.RealTimeMeasurements == null || !ApiServiceInfo.RealTimeMeasurements.Any())
+                        @if (ApiServiceInfo.RealTimeMeasurement == null || !ApiServiceInfo.RealTimeMeasurement.Any())
                         {
                             <p>Loading...</p>
                         }
@@ -28,7 +28,9 @@
                                     <LineChart @ref="priceChart" Class="tibberLineChart" Height="40" HeightUnit="Unit.Vh" Width="40" WidthUnit="Unit.Vw" />
                                 </div>
                                 <div class="flex-column m-3 p-3">
+                                    <LineChart @ref="deviceChart" Class="tibberLineChart" Height="20" HeightUnit="Unit.Vh" Width="40" WidthUnit="Unit.Vw" />
                                     <CardGroup Style="height:100%;">
+
                                         @foreach (var device in ApiServiceInfo.Devices.Where(x => x.DeviceType == "noah"))
                                         {
                                             <Card Style="width:18rem;">
@@ -43,7 +45,7 @@
                                                             </span>
                                                         </li>
                                                         <li class="list-group-item">
-                                                            Current OutPower: @ApiServiceInfo.LastValueChange.OrderByDescending(x => x.TS).FirstOrDefault()?.Value W
+                                                            Current OutPower: @ApiServiceInfo.LastOutputValue(device.DeviceSn) W
                                                         </li>
 
                                                     </ul>
@@ -54,7 +56,15 @@
                                             <CardBody>
                                                 <CardTitle>Last Indicator Values</CardTitle>
                                                 <CardBody>
-                                                    @ApiServiceInfo.ApiTotalAvg
+                                                    <p>
+                                                        AvgPowerLoad: @ApiServiceInfo.AvgPowerLoad
+                                                    </p>
+                                                    <p>
+                                                        GrowattQueueCount: @ApiServiceInfo.GrowattValueChangeQueue.Count
+                                                    </p>
+                                                    <p>
+                                                        AvgPowerLoadFactor: @ApiServiceInfo.AvgPowerLoadFactor
+                                                    </p>
                                                 </CardBody>
                                             </CardBody>
                                         </Card>
@@ -71,13 +81,13 @@
                                 <Switch @bind-Value="ApiServiceInfo.AutoMode" Label="AutoMode (zero injection on low soc)" />
                             </div>
                             <div class="flex-column">
-                                AvgPowerLoadSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.AvgPowerLoadSeconds" Min="5" Max="30" TickMarks="AvgPowerLoadSecondsTickList" />
+                                AvgPowerLoadSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingPowerLoadSeconds" Min="5" Max="30" TickMarks="AvgPowerLoadSecondsTickList" />
                             </div>
                             <div class="flex-column">
-                                ApiLockSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.ApiLockSeconds" Min="3" Max="15" TickMarks="ApiLockSecondsTickList" />
+                                ApiLockSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingLockSeconds" Min="100" Max="1000" TickMarks="ApiLockSecondsTickList" />
                             </div>
                             <div class="flex-column">
-                                ApiOffsetAvg <RangeInput TValue="int" @bind-Value="ApiServiceInfo.ApiOffsetAvg" Min="0" Max="75" TickMarks="ApiOffsetAvgTickList" />
+                                ApiOffsetAvg <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingOffsetAvg" Min="0" Max="75" TickMarks="ApiOffsetAvgTickList" />
                             </div>
                         </div>
                     </Content>

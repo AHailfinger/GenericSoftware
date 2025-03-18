@@ -30,11 +30,17 @@ public partial class ApiService
 
             OnNewRealTimeMeasurement?.Invoke(this, value);
 
-            var dbContext = GetDbContext();
-
-            ApiServiceInfo.RealTimeMeasurements.Add(value);
-            ApiServiceInfo.RealTimeMeasurementExtentions.Add(new RealTimeMeasurementExtention() { TimeStamp = value.Timestamp, AvgOffSet = ApiServiceInfo.ApiOffsetAvg });
-            dbContext.RealTimeMeasurements.Add(value); // Speichern in der Datenbank
+            var dbContext = GetDbContext();           
+            var newRealTimeMeasurementExtention = new RealTimeMeasurementExtention(value) {
+                SettingOffSetAvg = ApiServiceInfo.SettingOffsetAvg,
+                SettingLockSeconds = ApiServiceInfo.SettingLockSeconds,
+                SettingPowerLoadSeconds = ApiServiceInfo.SettingPowerLoadSeconds,
+                AvgPowerValue = ApiServiceInfo.AvgPowerValue,
+                AvgPowerLoad = ApiServiceInfo.AvgPowerLoad,
+                AvgOutputValue = ApiServiceInfo.AvgOutputValue
+            };
+            ApiServiceInfo.RealTimeMeasurement.Add(newRealTimeMeasurementExtention);
+            dbContext.RealTimeMeasurements.Add(newRealTimeMeasurementExtention); // Speichern in der Datenbank
 
             dbContext.SaveChanges(); // Änderungen speichern
         }

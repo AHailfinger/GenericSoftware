@@ -7,34 +7,40 @@ public class ApiServiceInfo
 {
     public bool AutoMode { get; set; }
 
-    public int AvgPowerLoadSeconds { get; set; } = 20;
+    public int SettingPowerLoadSeconds { get; set; } = 20;
 
-    public int ApiLockSeconds { get; set; } = 6;
+    public int SettingLockSeconds { get; set; } = 600;
 
-    public int ApiOffsetAvg { get; set; } = 25;
+    public int SettingOffsetAvg { get; set; } = 50;
 
-    public int ApiTotalAvg 
+    public int AvgPowerValue { get; set; }
+
+    public int AvgPowerLoad { get; set; }
+
+    public int AvgPowerLoadFactor { get; set; } = 1;
+
+    public int AvgOutputValue
     {
         get
         {
-            return apiTotalAvg;
+            return avgOutputValue;
         }
         set
         {
-            if (apiTotalAvg != value)
-                ApiTotalAvgChanged?.Invoke(this, new EventArgs());
-            apiTotalAvg = value;
+            if (avgOutputValue != value)
+                AvgOutputValueChanged?.Invoke(this, new EventArgs());
+            avgOutputValue = value;
         }
     }
-    private int apiTotalAvg = 0;
+    private int avgOutputValue = 0;
 
-    public event EventHandler? ApiTotalAvgChanged;
+    public event EventHandler? AvgOutputValueChanged;
+
+    public Queue<ApiLastValueChange> GrowattValueChangeQueue = new();
 
     public List<DateTime> DataReads { get; set; } = [];
-
-    public List<RealTimeMeasurementExtention> RealTimeMeasurementExtentions { get; set; } = [];
-    
-    public List<ApiLastValueChange> LastValueChange { get; set; } = [];
+   
+    public List<ApiLastValueChange> OutputValueValueChange { get; set; } = [];
 
     public ObservableCollection<Device> Devices { get; set; } = new ObservableCollection<Device>();
     
@@ -42,7 +48,7 @@ public class ApiServiceInfo
     
     public ObservableCollection<DeviceNoahLastData> DeviceNoahLastData { get; set; } = new ObservableCollection<DeviceNoahLastData>();
     
-    public ObservableCollection<RealTimeMeasurement> RealTimeMeasurements { get; set; } = new ObservableCollection<RealTimeMeasurement>();
+    public ObservableCollection<RealTimeMeasurementExtention> RealTimeMeasurement { get; set; } = new ObservableCollection<RealTimeMeasurementExtention>();
     
     public ObservableCollection<ApiPrice> Prices { get; set; } = new ObservableCollection<ApiPrice>();
 
@@ -110,18 +116,18 @@ public class ApiServiceInfo
         return avgToday;
     }
 
-    public int LastPowerValue(string deviceSn)
+    public int LastOutputValue(string deviceSn)
     {
-        return LastValueChange.Where(x => x.DeviceSn == deviceSn).Count() != 0 ?
-            LastValueChange.OrderByDescending(x => x.TS).First(x => x.DeviceSn == deviceSn).Value :
+        return OutputValueValueChange.Where(x => x.DeviceSn == deviceSn).Count() != 0 ?
+            OutputValueValueChange.OrderByDescending(x => x.TS).First(x => x.DeviceSn == deviceSn).Value :
             (int)DeviceNoahLastData.OrderBy(x => x.time).First(x => x.deviceSn == deviceSn).pac;
     }
 
-    public int LastPowerAvgValue()
+    public int AvgLastOutputValue()
     {
-        if (LastValueChange.Count != 0)
+        if (OutputValueValueChange.Count != 0)
         {
-            var latestPacValues = LastValueChange
+            var latestPacValues = OutputValueValueChange
                 .GroupBy(x => x.DeviceSn)
                 .Select(g => g.OrderByDescending(x => x.TS).First().Value)
                 .ToList();
