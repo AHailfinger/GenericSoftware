@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components;
 using Mono.TextTemplating;
 using Newtonsoft.Json.Linq;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using static ApiServiceInfo;
@@ -85,21 +86,28 @@ namespace EnergyAutomate.Components.Pages
 
         private async void RealTimeMeasurement_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            if (isRealTimeMeasurementChartInitialized && realTimeMeasurementChart != null)
+            try
             {
-                GetRealTimeMeasurementData();
-                if (realTimeMeasurementData != null)
+                if (isRealTimeMeasurementChartInitialized && realTimeMeasurementChart != null)
                 {
-                    await realTimeMeasurementChart.UpdateValuesAsync(realTimeMeasurementData);
+                    GetRealTimeMeasurementData();
+                    if (realTimeMeasurementData != null)
+                    {
+                        await realTimeMeasurementChart.UpdateValuesAsync(realTimeMeasurementData);
+                    }
+                }
+                if (isDeviceChartInitialized && deviceChart != null)
+                {
+                    GetDeviceData();
+                    if (deviceData != null)
+                    {
+                        await deviceChart.UpdateValuesAsync(deviceData);
+                    }
                 }
             }
-            if (isDeviceChartInitialized && deviceChart != null)
+            catch (Exception ex)
             {
-                GetDeviceData();
-                if (deviceData != null)
-                {
-                    await deviceChart.UpdateValuesAsync(deviceData);
-                }
+                Debug.WriteLine($"Error in RealTimeMeasurement_CollectionChanged: {ex.Message}");
             }
         }
 

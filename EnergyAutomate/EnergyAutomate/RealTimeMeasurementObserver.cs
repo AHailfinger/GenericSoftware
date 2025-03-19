@@ -9,21 +9,29 @@ public partial class ApiService
     {
         private IServiceProvider ServiceProvider { get; set; }
 
-        public RealTimeMeasurementObserver(IServiceProvider serviceProvider, ApiServiceInfo apiServiceInfo)
+        public RealTimeMeasurementObserver(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
-            ApiServiceInfo = apiServiceInfo;
         }
 
         public delegate Task OnNewRealTimeMeasurementHandler(object sender, RealTimeMeasurement value);
         public event OnNewRealTimeMeasurementHandler? OnNewRealTimeMeasurement;
 
-        public ApiServiceInfo ApiServiceInfo { get; set; }
+        public ApiServiceInfo ApiServiceInfo => ServiceProvider.GetRequiredService<ApiServiceInfo>();
 
-        public void OnCompleted() =>
+        public ApiService ApiService => ServiceProvider.GetRequiredService<ApiService>();
+
+        public void OnCompleted() {
             Console.WriteLine("Real time measurement stream has been terminated. ");
-        public void OnError(Exception error) =>
+            ApiService.StartRealTimeMeasurementListener().Wait();
+        }
+
+        public void OnError(Exception error)
+        {
             Console.WriteLine($"An error occured: {error}");
+            ApiService.StartRealTimeMeasurementListener().Wait();
+        }
+            
         public void OnNext(RealTimeMeasurement value)
         {
             Console.WriteLine($"{value.Timestamp} - consumtion: {value.Power:N0} W production: {value.PowerProduction:N0} W; ");

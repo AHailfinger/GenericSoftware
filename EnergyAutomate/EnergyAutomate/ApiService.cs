@@ -30,10 +30,8 @@ public partial class ApiService : IDisposable
         ApiServiceInfo.RefreshNoahLastData += RefreshDeviceNoahLastData;
         ApiServiceInfo.ClearDeviceNoahTimeSegments += SetNoTimerDeviceNoahs;
 
-        RealTimeMeasurement = new RealTimeMeasurementObserver(serviceProvider, ApiServiceInfo);
-        RealTimeMeasurement.OnNewRealTimeMeasurement += RealTimeMeasurement_OnNewRealTimeMeasurement;
-
-
+        RTMObserver = new RealTimeMeasurementObserver(serviceProvider);
+        RTMObserver.OnNewRealTimeMeasurement += RealTimeMeasurement_OnNewRealTimeMeasurement;
     }
 
     private DateTime? lastLimitError = default;
@@ -162,7 +160,7 @@ public partial class ApiService : IDisposable
                 {
                     int newPowerValue = lastPowerValue;
 
-                    ApiServiceInfo.AvgPowerLoadFactor = Math.Abs(ApiServiceInfo.AvgPowerValue) switch
+                    ApiServiceInfo.AvgPowerLoadFactor = Math.Abs(ApiServiceInfo.AvgPowerLoad) switch
                     {
                         > 200 => 5,
                         > 150 => 4,
@@ -225,7 +223,9 @@ public partial class ApiService : IDisposable
         return ServiceProvider.CreateScope().ServiceProvider.GetRequiredService<ApplicationDbContext>();
     }
 
-    private RealTimeMeasurementObserver RealTimeMeasurement { get; set; }
+    private RealTimeMeasurementObserver RTMObserver { get; set; }
+
+    private IObservable<RealTimeMeasurement> RealTimeMeasurementListener { get; set; }
 
     public ApiServiceInfo ApiServiceInfo { get; set; }
 
@@ -233,13 +233,18 @@ public partial class ApiService : IDisposable
     {
         await GetTomorrowPrices();
 
-        if (TibberHomeId.HasValue)
-        {
-            var listener = await TibberApiClient.StartRealTimeMeasurementListener(TibberHomeId.Value);
-            listener.Subscribe(RealTimeMeasurement);
-        }
+        await StartRealTimeMeasurementListener();
 
         await LoadApiServiceInfoFromDatabase();
+    }
+
+    public async Task StartRealTimeMeasurementListener()
+    {
+        if (TibberHomeId.HasValue)
+        {
+            RealTimeMeasurementListener = await TibberApiClient.StartRealTimeMeasurementListener(TibberHomeId.Value);
+            RealTimeMeasurementListener.Subscribe(RTMObserver);
+        }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
