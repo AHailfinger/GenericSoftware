@@ -44,8 +44,8 @@
                                                                 @ApiServiceInfo.DeviceNoahLastData.Where(x => x.deviceSn == device.DeviceSn).OrderByDescending(x => x.time).FirstOrDefault()?.battery1Soc %
                                                             </span>
                                                         </li>
-                                                        <li class="list-group-item">
-                                                            Current OutPower: @ApiServiceInfo.LastOutputValue(device.DeviceSn) W
+                                                  <li class="list-group-item">
+                                                            Current OutPower: @ApiServiceInfo.GetLastValuePerDevice(device.DeviceSn) W
                                                         </li>
 
                                                     </ul>
@@ -60,10 +60,16 @@
                                                         AvgPowerLoad: @ApiServiceInfo.AvgPowerLoad
                                                     </p>
                                                     <p>
+                                                        LastPowerValue: @ApiServiceInfo.LastPowerValue
+                                                    </p>
+                                                    <p>
+                                                        NewPowerValue: @ApiServiceInfo.NewPowerValue
+                                                    </p>
+                                                    <p>
                                                         GrowattQueueCount: @ApiServiceInfo.GrowattValueChangeQueue.Count
                                                     </p>
                                                     <p>
-                                                        AvgPowerLoadFactor: @ApiServiceInfo.AvgPowerLoadFactor
+                                                        LastOutputValue: @ApiServiceInfo.LastOutputValue
                                                     </p>
                                                 </CardBody>
                                             </CardBody>
@@ -76,18 +82,24 @@
                 </Tab>
                 <Tab Title="Settings">
                     <Content>
-                        <div class="mt-3 d-flex justify-content-center gap-3">
-                            <div class="flex-column">
+                        <div class="mt-3 d-flex flex-column justify-content-center gap-3">
+                            <div>
                                 <Switch @bind-Value="ApiServiceInfo.AutoMode" Label="AutoMode (zero injection on low soc)" />
                             </div>
-                            <div class="flex-column">
-                                AvgPowerLoadSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingPowerLoadSeconds" Min="5" Max="30" TickMarks="AvgPowerLoadSecondsTickList" />
+                            <div>
+                                <Switch @bind-Value="ApiServiceInfo.SettingLoadBalanced" Label="LoadBalanced (zero injection on low soc)" />
                             </div>
-                            <div class="flex-column">
+                            <div>
+                                AvgPowerLoadSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingPowerLoadSeconds" Min="5" Max="60" TickMarks="AvgPowerLoadSecondsTickList" />
+                            </div>
+                            <div>
                                 ApiLockSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingLockSeconds" Min="100" Max="1000" TickMarks="ApiLockSecondsTickList" />
                             </div>
-                            <div class="flex-column">
-                                ApiOffsetAvg <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingOffsetAvg" Min="0" Max="75" TickMarks="ApiOffsetAvgTickList" />
+                            <div>
+                                ApiOffsetAvg <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingOffsetAvg" Min="0" Max="100" TickMarks="ApiOffsetAvgTickList" />
+                            </div>
+                            <div>
+                                SettingToleranceAvg <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingToleranceAvg" Min="0" Max="100" TickMarks="ApiOffsetAvgTickList" />
                             </div>
                         </div>
                     </Content>

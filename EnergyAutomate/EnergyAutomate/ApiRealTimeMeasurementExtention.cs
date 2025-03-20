@@ -1,4 +1,6 @@
-﻿using Tibber.Sdk;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Tibber.Sdk;
 
 namespace EnergyAutomate
 {
@@ -43,10 +45,16 @@ namespace EnergyAutomate
 
         public int SettingOffSetAvg { get; set; }
 
-        public int AvgPowerValue{ get; set; }
+        [NotMapped]
+        public int TotalPower => Power > 0 ? (int)Power : -(int)(PowerProduction ?? 0);
+
+        public int TotalOutputValue => DeviceInfos?.Sum(sum => sum.Value) ?? 0;
 
         public int AvgPowerLoad { get; set; }
 
-        public int AvgOutputValue { get; set; }
+        [JsonInclude]
+        public List<ApiOutputValueDeviceInfo>? DeviceInfos { get; set; } = new List<ApiOutputValueDeviceInfo>();
+
+        public DateTime TS { get; set; }
     }
 }

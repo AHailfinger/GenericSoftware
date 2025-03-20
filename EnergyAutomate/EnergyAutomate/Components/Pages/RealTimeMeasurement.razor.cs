@@ -23,10 +23,25 @@ namespace EnergyAutomate.Components.Pages
             ApiServiceInfo.Prices.CollectionChanged += Price_CollectionChanged;
             ApiServiceInfo.Devices.CollectionChanged += Devices_CollectionChanged;
             ApiServiceInfo.DeviceNoahLastData.CollectionChanged += DeviceNoahLastData_CollectionChanged;
-            ApiServiceInfo.AvgOutputValueChanged += ApiServiceInfo_ApiTotalAvgChanged;
+            ApiServiceInfo.OutputValueValueChange.CollectionChanged += OutputValueValueChange_CollectionChanged;
+            ApiServiceInfo.AvgOutputValueChanged += ApiServiceInfo_AvgOutputValueChanged;
         }
 
-        private async void ApiServiceInfo_ApiTotalAvgChanged(object? sender, EventArgs e)
+        private async void ApiServiceInfo_AvgOutputValueChanged(object? sender, EventArgs e)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+
+        public void Dispose()
+        {
+            ApiServiceInfo.RealTimeMeasurement.CollectionChanged -= RealTimeMeasurement_CollectionChanged;
+            ApiServiceInfo.Prices.CollectionChanged -= Price_CollectionChanged;
+            ApiServiceInfo.Devices.CollectionChanged -= Devices_CollectionChanged;
+            ApiServiceInfo.DeviceNoahLastData.CollectionChanged -= DeviceNoahLastData_CollectionChanged;
+            ApiServiceInfo.OutputValueValueChange.CollectionChanged -= OutputValueValueChange_CollectionChanged;
+        }
+
+        private async void OutputValueValueChange_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             await InvokeAsync(StateHasChanged);
         }
@@ -49,7 +64,13 @@ namespace EnergyAutomate.Components.Pages
             new(){ Label = "15", Value = "15"},
             new(){ Label = "20", Value = "20"},
             new(){ Label = "25", Value = "25"},
-            new(){ Label = "30", Value = "30"}
+            new(){ Label = "30", Value = "30"},
+            new(){ Label = "35", Value = "35"},
+            new(){ Label = "40", Value = "40"},
+            new(){ Label = "45", Value = "45"},
+            new(){ Label = "50", Value = "50"},
+            new(){ Label = "55", Value = "55"},
+            new(){ Label = "60", Value = "60"}
         };
 
         private readonly IEnumerable<TickMark> ApiLockSecondsTickList = new List<TickMark>
@@ -71,7 +92,8 @@ namespace EnergyAutomate.Components.Pages
             new(){ Label = "0", Value = "0"},
             new(){ Label = "25", Value = "25"},
             new(){ Label = "50", Value = "50"},
-            new(){ Label = "75", Value = "75"}
+            new(){ Label = "75", Value = "75"},
+            new(){ Label = "100", Value = "100"}
         };
 
         Tabs tabsMainRef = default!;
@@ -137,6 +159,8 @@ namespace EnergyAutomate.Components.Pages
         {
             var dataSource = ApiServiceInfo.RealTimeMeasurement.OrderByDescending(x => x.Timestamp).Take(61).Reverse().ToList();
 
+            var AvgPowerList = dataSource.Select(x => x.TotalPower).ToList();
+
             realTimeMeasurementData = new ChartData
             {
                 Labels = dataSource.Select((x, index) => index % 5 == 0 ? x.Timestamp.TimeOfDay.ToString() : string.Empty).ToList(),
@@ -168,20 +192,10 @@ namespace EnergyAutomate.Components.Pages
                     },
                     new LineChartDataset()
                     {
-                        Label = "AvgPowerValue",
-                        Data = dataSource.Select(x => (double?)x.AvgPowerValue).ToList(),
-                        BackgroundColor = "rgb(0, 0, 0)",
-                        BorderColor = "rgb(0, 0, 0)",
-                        BorderWidth = 2,
-                        PointRadius = new List<double>() { 0 },
-                        Order = 2
-                    },
-                    new LineChartDataset()
-                    {
                         Label = "AvgPowerLoad",
                         Data = dataSource.Select(x => (double?)x.AvgPowerLoad).ToList(),
-                        BackgroundColor = "rgb(125, 125, 125)",
-                        BorderColor = "rgb(125, 125, 125)",
+                        BackgroundColor = "rgb(0, 0, 0)",
+                        BorderColor = "rgb(0, 0, 0)",
                         BorderWidth = 2,
                         PointRadius = new List<double>() { 0 },
                         Order = 2
@@ -192,7 +206,7 @@ namespace EnergyAutomate.Components.Pages
                         Data = dataSource.Select(x => (double?)x.SettingOffSetAvg).ToList(),
                         BackgroundColor= "rgb(255, 0, 0)",
                         BorderColor = "rgb(255, 0, 0)",
-                        BorderWidth = 1,
+                        BorderWidth = 2,
                         PointRadius = new List<double>() { 0 },
                         Stepped = true,
                         Order = 1
@@ -296,15 +310,14 @@ namespace EnergyAutomate.Components.Pages
                     new LineChartDataset()
                     {
                         Label = "AvgOutputValue",
-                        Data = dataSource.Select(x => (double?)x.AvgOutputValue).ToList(),
+                        Data = dataSource.Select(x => (double?)x.TotalOutputValue).ToList(),
                         BackgroundColor = "rgb(0, 255, 0)",
                         BorderColor = "rgb(0, 255, 0)",
                         BorderWidth = 2,
                         PointRadius = new List<double>() { 0 },
                         Order = 3
                     }
-
-                }
+                },
             };
         }
 
@@ -345,7 +358,7 @@ namespace EnergyAutomate.Components.Pages
             deviceChartOptions.Plugins.Title.Display = true;
             deviceChartOptions.Plugins.Title.Font = new ChartFont { Size = 20 };
             deviceChartOptions.Responsive = true;
-            deviceChartOptions.Scales.Y = new ChartAxes() { Min = 0, Max = 800 };
+            deviceChartOptions.Scales.Y = new ChartAxes() { Min = 0, Max = 1000 };
             deviceChartOptions.Scales.X!.Title = new ChartAxesTitle { Text = "Seconds (one minute)", Display = true };
             deviceChartOptions.Scales.Y!.Title = new ChartAxesTitle { Text = "Watt", Display = true };
             deviceChartOptions.MaintainAspectRatio = false;
@@ -392,15 +405,6 @@ namespace EnergyAutomate.Components.Pages
         }
 
         #endregion Growatt
-
-        public void Dispose()
-        {
-            ApiServiceInfo.RealTimeMeasurement.CollectionChanged -= RealTimeMeasurement_CollectionChanged;
-            ApiServiceInfo.Prices.CollectionChanged -= Price_CollectionChanged;
-            ApiServiceInfo.Devices.CollectionChanged -= Devices_CollectionChanged;
-            ApiServiceInfo.DeviceNoahLastData.CollectionChanged -= DeviceNoahLastData_CollectionChanged;
-            ApiServiceInfo.AvgOutputValueChanged -= ApiServiceInfo_ApiTotalAvgChanged;
-        }
 
     }
 }

@@ -7,50 +7,65 @@ public class ApiServiceInfo
 {
     public bool AutoMode { get; set; }
 
-    public int SettingPowerLoadSeconds { get; set; } = 20;
+    public bool SettingLoadBalanced { get; set; } = false;
+
+    public int SettingPowerLoadSeconds { get; set; } = 30;
 
     public int SettingLockSeconds { get; set; } = 600;
 
-    public int SettingOffsetAvg { get; set; } = 50;
+    public int SettingOffsetAvg { get; set; } = 75;
 
-    public int AvgPowerValue { get; set; }
+    public int SettingToleranceAvg { get; set; } = 25;
 
     public int AvgPowerLoad { get; set; }
+    public int LastPowerValue { get; set; }
+    public int NewPowerValue { get; set; }
+  
+    public List<DateTime> DataReads { get; set; } = [];
 
-    public int AvgPowerLoadFactor { get; set; } = 1;
+    #region Growatt
 
-    public int AvgOutputValue
-    {
-        get
-        {
-            return avgOutputValue;
-        }
-        set
-        {
-            if (avgOutputValue != value)
-                AvgOutputValueChanged?.Invoke(this, new EventArgs());
-            avgOutputValue = value;
-        }
-    }
-    private int avgOutputValue = 0;
+    #region OutputValueValueChange
 
     public event EventHandler? AvgOutputValueChanged;
 
-    public Queue<ApiLastValueChange> GrowattValueChangeQueue = new();
+    public void InvokeAvgOutputValueChanged()
+    {
+        AvgOutputValueChanged?.Invoke(this, new EventArgs());
+    }
 
-    public List<DateTime> DataReads { get; set; } = [];
-   
-    public List<ApiLastValueChange> OutputValueValueChange { get; set; } = [];
+    public Queue<ApiOutputValueDeviceInfo> GrowattValueChangeQueue = new();
 
-    public ObservableCollection<Device> Devices { get; set; } = new ObservableCollection<Device>();
+    public ObservableCollection<ApiOutputValueDeviceInfo> OutputValueValueChange { get; set; } = [];
+
+    public ApiOutputValueDeviceInfo? LastOutputValueValueChange => OutputValueValueChange.OrderByDescending(x => x.TS).FirstOrDefault();
+
+    public bool IsLastOutputValueEqual => OutputValueValueChange.All(x => x.Value == OutputValueValueChange.First().Value);
+
+    public int LastOutputValue => OutputValueValueChange.Sum(s => s.Value);
+
+    public int GetLastValuePerDevice(string deviceSn)
+    {
+        if (!string.IsNullOrWhiteSpace(deviceSn))
+        {
+            var apiOutputValueDeviceInfo = OutputValueValueChange.FirstOrDefault(x => x.DeviceSn == deviceSn);
+            var lastValueChange = apiOutputValueDeviceInfo?.Value ?? 0;
+            return lastValueChange;
+        }
+        return 0;
+    }
+
+    #endregion OutputValueValueChange
+
+    #region Device
+
+    public ObservableCollection<Device> Devices { get; set; } = [];
     
-    public ObservableCollection<DeviceNoahInfo> DeviceNoahInfo { get; set; } = new ObservableCollection<DeviceNoahInfo>();
+    public ObservableCollection<DeviceNoahInfo> DeviceNoahInfo { get; set; } = [];
     
-    public ObservableCollection<DeviceNoahLastData> DeviceNoahLastData { get; set; } = new ObservableCollection<DeviceNoahLastData>();
-    
-    public ObservableCollection<RealTimeMeasurementExtention> RealTimeMeasurement { get; set; } = new ObservableCollection<RealTimeMeasurementExtention>();
-    
-    public ObservableCollection<ApiPrice> Prices { get; set; } = new ObservableCollection<ApiPrice>();
+    public ObservableCollection<DeviceNoahLastData> DeviceNoahLastData { get; set; } = [];
+
+    #endregion Device
 
     public delegate Task RefreshDeviceListHandler(object sender, EventArgs e);
     public event RefreshDeviceListHandler? RefreshDeviceList;
@@ -96,6 +111,15 @@ public class ApiServiceInfo
         }
     }
 
+
+    #endregion Growatt
+
+    #region Tibber
+
+    public ObservableCollection<RealTimeMeasurementExtention> RealTimeMeasurement { get; set; } = [];
+    
+    public ObservableCollection<ApiPrice> Prices { get; set; } = [];
+
     public (double?, double?, List<double?>, List<double?>) GetPriceDatas()
     {
         var priceDates = Prices.GroupBy(x => x.StartsAt.Date).ToList();
@@ -116,33 +140,5 @@ public class ApiServiceInfo
         return avgToday;
     }
 
-    public int LastOutputValue(string deviceSn)
-    {
-        return OutputValueValueChange.Where(x => x.DeviceSn == deviceSn).Count() != 0 ?
-            OutputValueValueChange.OrderByDescending(x => x.TS).First(x => x.DeviceSn == deviceSn).Value :
-            (int)DeviceNoahLastData.OrderBy(x => x.time).First(x => x.deviceSn == deviceSn).pac;
-    }
-
-    public int AvgLastOutputValue()
-    {
-        if (OutputValueValueChange.Count != 0)
-        {
-            var latestPacValues = OutputValueValueChange
-                .GroupBy(x => x.DeviceSn)
-                .Select(g => g.OrderByDescending(x => x.TS).First().Value)
-                .ToList();
-
-            return latestPacValues.Any() ? (int)latestPacValues.Average() : 0;
-        }
-        else
-        {
-            var latestPacValues = DeviceNoahLastData
-                .GroupBy(x => x.deviceSn)
-                .Select(g => g.OrderByDescending(x => x.time).First().pac)
-                .ToList();
-
-            return latestPacValues.Any() ? (int)latestPacValues.Average() : 0;
-        }
-    }
-
+    #endregion Tibber
 }

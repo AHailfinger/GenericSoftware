@@ -2,6 +2,7 @@ using Growatt.OSS;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Tibber.Sdk;
 
@@ -9,6 +10,8 @@ namespace EnergyAutomate.Data;
 
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
+    private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions();
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
     }
@@ -32,7 +35,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<DeviceNoahInfo>().Ignore(x => x.TimeSegments);
         modelBuilder.Entity<DeviceNoahLastData>().HasKey(x => new { x.deviceSn, x.time });
 
-        modelBuilder.Entity<RealTimeMeasurementExtention>().HasKey(x => new { x.Timestamp });
+        modelBuilder.Entity<RealTimeMeasurementExtention>()
+            .HasKey(x => new { x.Timestamp });
+        modelBuilder.Entity<RealTimeMeasurementExtention>()
+            .Property(p => p.DeviceInfos)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, _jsonSerializerOptions),
+                v => JsonSerializer.Deserialize<List<ApiOutputValueDeviceInfo>>(v, _jsonSerializerOptions) ?? new List<ApiOutputValueDeviceInfo>());
+
         modelBuilder.Entity<ApiPrice>().HasKey(x => new { x.StartsAt });
 
         // Set all string properties to be nullable

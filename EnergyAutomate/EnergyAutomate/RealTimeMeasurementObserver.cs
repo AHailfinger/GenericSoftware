@@ -23,29 +23,33 @@ public partial class ApiService
 
         public void OnCompleted() {
             Console.WriteLine("Real time measurement stream has been terminated. ");
-            ApiService.StartRealTimeMeasurementListener().Wait();
+            _ = ApiService.StartRealTimeMeasurementListener();
         }
 
         public void OnError(Exception error)
         {
             Console.WriteLine($"An error occured: {error}");
-            ApiService.StartRealTimeMeasurementListener().Wait();
+            _ = ApiService.StartRealTimeMeasurementListener();
         }
             
         public void OnNext(RealTimeMeasurement value)
         {
             Console.WriteLine($"{value.Timestamp} - consumtion: {value.Power:N0} W production: {value.PowerProduction:N0} W; ");
 
+            ApiServiceInfo.AvgPowerLoad = BerechneDurchschnittswertDerLetztenXSekunden(ApiServiceInfo.SettingPowerLoadSeconds);
+
             OnNewRealTimeMeasurement?.Invoke(this, value);
 
-            var dbContext = GetDbContext();           
-            var newRealTimeMeasurementExtention = new RealTimeMeasurementExtention(value) {
-                SettingOffSetAvg = ApiServiceInfo.SettingOffsetAvg,
+            var dbContext = ServiceProvider.CreateScope().ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var newRealTimeMeasurementExtention = new RealTimeMeasurementExtention(value)
+            {
+                TS = value.Timestamp.DateTime,
+                DeviceInfos = [.. ApiServiceInfo.OutputValueValueChange],
                 SettingLockSeconds = ApiServiceInfo.SettingLockSeconds,
                 SettingPowerLoadSeconds = ApiServiceInfo.SettingPowerLoadSeconds,
-                AvgPowerValue = ApiServiceInfo.AvgPowerValue,
                 AvgPowerLoad = ApiServiceInfo.AvgPowerLoad,
-                AvgOutputValue = ApiServiceInfo.AvgOutputValue
+                SettingOffSetAvg = ApiServiceInfo.SettingOffsetAvg
             };
             ApiServiceInfo.RealTimeMeasurement.Add(newRealTimeMeasurementExtention);
             dbContext.RealTimeMeasurements.Add(newRealTimeMeasurementExtention); // Speichern in der Datenbank
@@ -53,9 +57,20 @@ public partial class ApiService
             dbContext.SaveChanges(); // Änderungen speichern
         }
 
-        private ApplicationDbContext GetDbContext()
+        public int BerechneDurchschnittswertDerLetztenXSekunden(int sec)
         {
-            return ServiceProvider.CreateScope().ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var now = DateTimeOffset.Now;
+            var result = ApiServiceInfo.RealTimeMeasurement
+                .Where(m => m.Timestamp >= now.AddSeconds(-sec))
+                .ToList();
+
+            if (!result.Any())
+            {
+                return 0;
+            }
+
+            var avg = result.Average(m => m.TotalPower);
+            return (int)avg;
         }
     }
 }
