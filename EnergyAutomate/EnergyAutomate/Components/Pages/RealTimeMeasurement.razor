@@ -55,6 +55,12 @@
                                                 AvgPowerLoad: @ApiServiceInfo.AvgPowerLoad
                                             </li>
                                             <li class="list-group-item">
+                                                DifferencePowerValue: @ApiServiceInfo.DifferencePowerValue
+                                            </li>
+                                            <li class="list-group-item">
+                                                DeltaPowerValue: @ApiServiceInfo.DeltaPowerValue
+                                            </li>
+                                            <li class="list-group-item">
                                                 LastPowerValue: @ApiServiceInfo.LastPowerValue
                                             </li>
                                             <li class="list-group-item">
@@ -84,16 +90,19 @@
                                 <Switch @bind-Value="ApiServiceInfo.SettingLoadBalanced" Label="LoadBalanced (zero injection on low soc)" />
                             </div>
                             <div>
-                                AvgPowerLoadSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingPowerLoadSeconds" Min="5" Max="60" TickMarks="AvgPowerLoadSecondsTickList" />
+                                AvgPowerLoadSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingPowerLoadSeconds" Min="3" Max="60" TickMarks="AvgPowerLoadSecondsTickList" Step="3" />
                             </div>
                             <div>
-                                ApiLockSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingLockSeconds" Min="100" Max="1000" TickMarks="ApiLockSecondsTickList" />
+                                ApiLockSeconds <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingLockSeconds" Min="100" Max="1000" TickMarks="ApiLockSecondsTickList" Step="50" />
                             </div>
                             <div>
-                                ApiOffsetAvg <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingOffsetAvg" Min="0" Max="100" TickMarks="ApiOffsetAvgTickList" />
+                                ApiOffsetAvg <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingOffsetAvg" Min="0" Max="100" TickMarks="ApiOffsetAvgTickList" Step="25" />
                             </div>
                             <div>
-                                SettingToleranceAvg <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingToleranceAvg" Min="0" Max="100" TickMarks="ApiOffsetAvgTickList" />
+                                SettingToleranceAvg <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingToleranceAvg" Min="0" Max="100" TickMarks="ApiOffsetAvgTickList" Step="5"/>
+                            </div>
+                            <div>
+                                SettingMaxPower <RangeInput TValue="int" @bind-Value="ApiServiceInfo.SettingMaxPower" Min="700" Max="900" TickMarks="ApiMaxPowerTickList" Step="10" />
                             </div>
                         </div>
                     </Content>
@@ -145,7 +154,7 @@
                                     </div>
                                     <div class="flex-column ml-3">
                                         <ul>
-                                            @foreach (var lastData in ApiServiceInfo.DeviceNoahLastData.Where(x => x.deviceSn == deviceInfo.DeviceSn))
+                                            @foreach (var lastData in ApiServiceInfo.DeviceNoahLastData.Where(x => x != null && x.deviceSn == deviceInfo.DeviceSn))
                                             {
 
                                                 DateTime time = DateTimeOffset.FromUnixTimeMilliseconds(@lastData.time).DateTime;

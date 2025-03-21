@@ -18,8 +18,6 @@ public partial class ApiService : IObserver<RealTimeMeasurement>, IDisposable
 
     private IObservable<RealTimeMeasurement>? RealTimeMeasurementListener { get; set; }
 
-    private IDisposable? RealTimeMeasurementDisposable { get; set; }
-
     public void OnCompleted()
     {
         Console.WriteLine("Real time measurement stream has been terminated. ");
@@ -50,7 +48,8 @@ public partial class ApiService : IObserver<RealTimeMeasurement>, IDisposable
             SettingLockSeconds = ApiServiceInfo.SettingLockSeconds,
             SettingPowerLoadSeconds = ApiServiceInfo.SettingPowerLoadSeconds,
             AvgPowerLoad = ApiServiceInfo.AvgPowerLoad,
-            SettingOffSetAvg = ApiServiceInfo.SettingOffsetAvg
+            SettingOffSetAvg = ApiServiceInfo.SettingOffsetAvg,
+            SettingToleranceAvg = ApiServiceInfo.SettingToleranceAvg
         };
         ApiServiceInfo.RealTimeMeasurement.Add(newRealTimeMeasurementExtention);
         DbContext.RealTimeMeasurements.Add(newRealTimeMeasurementExtention); // Speichern in der Datenbank
@@ -62,9 +61,9 @@ public partial class ApiService : IObserver<RealTimeMeasurement>, IDisposable
     {
         if (TibberHomeId.HasValue)
         {
-            if (RealTimeMeasurementDisposable != null)
+            if (RealTimeMeasurementListener != null)
             {
-                RealTimeMeasurementDisposable.Dispose();
+                await TibberApiClient.StopRealTimeMeasurementListener(TibberHomeId.Value);
                 RealTimeMeasurementListener = null;
                 GC.Collect();
             }
@@ -74,7 +73,7 @@ public partial class ApiService : IObserver<RealTimeMeasurement>, IDisposable
             try
             {
                 RealTimeMeasurementListener = await TibberApiClient.StartRealTimeMeasurementListener(TibberHomeId.Value, cancellationToken);
-                RealTimeMeasurementDisposable = RealTimeMeasurementListener.Subscribe(this);
+                _ = RealTimeMeasurementListener.Subscribe(this);
             }
             catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
             {
@@ -112,11 +111,9 @@ public partial class ApiService : IObserver<RealTimeMeasurement>, IDisposable
     {
         if (!isDisposed)
         {
-            if (RealTimeMeasurementDisposable != null)
+            if (RealTimeMeasurementListener != null)
             {
-                RealTimeMeasurementDisposable.Dispose();
                 RealTimeMeasurementListener = null;
-
                 TibberApiClient.Dispose();
             }
             isDisposed = true;
@@ -153,11 +150,8 @@ public partial class ApiService : IObserver<RealTimeMeasurement>, IDisposable
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await GetBasicData();
-
-        await StartRealTimeMeasurementListener();
-
         await GetTomorrowPrices();
-
+        await StartRealTimeMeasurementListener();
         await LoadApiServiceInfoFromDatabase();
     }
 
@@ -253,13 +247,13 @@ public partial class ApiService : IObserver<RealTimeMeasurement>, IDisposable
             var avgToday = ApiServiceInfo.GetAvgPriceToday();
 
             // Prüfe, ob der aktuelle Preis über dem Tagesdurchschnitt liegt
-            if (currentPrice.HasValue && currentPrice.Value >= avgToday)
-            {
+            //if (currentPrice.HasValue && currentPrice.Value >= avgToday)
+            //{
                 List<ApiOutputValueDeviceInfo> lastOutputValue = [];
 
-                var absAvgPowerLoad = Math.Abs(ApiServiceInfo.AvgPowerLoad);
+                ApiServiceInfo.DifferencePowerValue = Math.Abs(ApiServiceInfo.SettingOffsetAvg - ApiServiceInfo.AvgPowerLoad);
 
-                var deltaPowerLoad = absAvgPowerLoad switch
+                ApiServiceInfo.DeltaPowerValue = ApiServiceInfo.DifferencePowerValue switch
                 {
                     > 300 => 100,
                     > 250 => 50,
@@ -275,24 +269,25 @@ public partial class ApiService : IObserver<RealTimeMeasurement>, IDisposable
                     _ => 0
                 };
 
-                ApiServiceInfo.LastPowerValue = absAvgPowerLoad >= 50 ? (int)(Math.Round(ApiServiceInfo.LastOutputValue / 2 / 5.0) * 5) : (int)ApiServiceInfo.LastOutputValue / 2;
+                ApiServiceInfo.LastPowerValue = ApiServiceInfo.DifferencePowerValue >= 50 ? (int)(Math.Round(ApiServiceInfo.LastOutputValue / 2 / 5.0) * 5) : (int)ApiServiceInfo.LastOutputValue / 2;
                 ApiServiceInfo.NewPowerValue = ApiServiceInfo.LastPowerValue;
 
                 // Prüfe, ob der aktuelle Preis über dem Tagesdurchschnitt liegt
-                if (ApiServiceInfo.AvgPowerLoad > (ApiServiceInfo.SettingToleranceAvg / 2) + ApiServiceInfo.SettingOffsetAvg)
+                if (ApiServiceInfo.AvgPowerLoad > ApiServiceInfo.SettingOffsetAvg + (ApiServiceInfo.SettingToleranceAvg / 2))
                 {
-                    ApiServiceInfo.NewPowerValue = ApiServiceInfo.LastPowerValue + deltaPowerLoad;
+                    ApiServiceInfo.NewPowerValue = ApiServiceInfo.LastPowerValue + ApiServiceInfo.DeltaPowerValue;
                 }
-                else if (ApiServiceInfo.AvgPowerLoad < -(ApiServiceInfo.SettingToleranceAvg / 2) + ApiServiceInfo.SettingOffsetAvg)
+                else if (ApiServiceInfo.AvgPowerLoad < ApiServiceInfo.SettingOffsetAvg - (ApiServiceInfo.SettingToleranceAvg / 2))
                 {
-                    ApiServiceInfo.NewPowerValue = ApiServiceInfo.LastPowerValue - deltaPowerLoad;
+                    ApiServiceInfo.NewPowerValue = ApiServiceInfo.LastPowerValue - ApiServiceInfo.DeltaPowerValue;
                 }
 
                 var powerChanged = ApiServiceInfo.NewPowerValue != ApiServiceInfo.LastPowerValue;
+                var maxPower = ApiServiceInfo.SettingMaxPower / 2;
 
-                ApiServiceInfo.NewPowerValue = ApiServiceInfo.NewPowerValue > 450 ? 450 : ApiServiceInfo.NewPowerValue < 0 ? 0 : ApiServiceInfo.NewPowerValue;
+                ApiServiceInfo.NewPowerValue = ApiServiceInfo.NewPowerValue > maxPower ? maxPower : ApiServiceInfo.NewPowerValue < 0 ? 0 : ApiServiceInfo.NewPowerValue;
 
-                if (ApiServiceInfo.NewPowerValue <= 450 && powerChanged)
+                if (ApiServiceInfo.NewPowerValue <= maxPower && powerChanged)
                 {
                     foreach (var device in ApiServiceInfo.Devices.Where(x => x.DeviceType == "noah"))
                     {
@@ -316,9 +311,9 @@ public partial class ApiService : IObserver<RealTimeMeasurement>, IDisposable
                     Debug.WriteLine($"PowerChanged: {powerChanged}, OffSet: {ApiServiceInfo.SettingOffsetAvg}");
                 }
 
-
+                ApiServiceInfo.InvokeAvgOutputValueChanged();
                 await CheckGrowattValueChangeQueue();
-            }
+            //}
         }
         else
         {
@@ -328,11 +323,19 @@ public partial class ApiService : IObserver<RealTimeMeasurement>, IDisposable
 
                 foreach (var device in ApiServiceInfo.Devices.Where(x => x.DeviceType == "noah"))
                 {
-                    await GrowattApiClient.SetPowerAsync(device.DeviceSn, device.DeviceType, 0);
+                    try
+                    {
+                        await GrowattApiClient.SetPowerAsync(device.DeviceSn, device.DeviceType, 0);
+                    }
+                    catch (Exception ex )
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
+
                     await Task.Delay(1000);
                 }
+                isRealTimeMeasurementRunning = false;
             }
-            isRealTimeMeasurementRunning = false;
         }
     }
 
@@ -735,8 +738,14 @@ public partial class ApiService : IObserver<RealTimeMeasurement>, IDisposable
                     Power = "0",
                     Enable = "0"
                 };
-
-                await GrowattApiClient.SetTimeSegmentAsync(request);
+                try
+                {
+                    await GrowattApiClient.SetTimeSegmentAsync(request);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
 
                 await Task.Delay(1000);
             }

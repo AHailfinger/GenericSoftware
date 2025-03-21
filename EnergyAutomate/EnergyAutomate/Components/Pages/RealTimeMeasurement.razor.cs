@@ -57,44 +57,23 @@ namespace EnergyAutomate.Components.Pages
             await base.OnAfterRenderAsync(firstRender);
         }
 
-        private readonly IEnumerable<TickMark> AvgPowerLoadSecondsTickList = new List<TickMark>
-        {
-            new(){ Label = "5", Value = "5"},
-            new(){ Label = "10", Value = "10"},
-            new(){ Label = "15", Value = "15"},
-            new(){ Label = "20", Value = "20"},
-            new(){ Label = "25", Value = "25"},
-            new(){ Label = "30", Value = "30"},
-            new(){ Label = "35", Value = "35"},
-            new(){ Label = "40", Value = "40"},
-            new(){ Label = "45", Value = "45"},
-            new(){ Label = "50", Value = "50"},
-            new(){ Label = "55", Value = "55"},
-            new(){ Label = "60", Value = "60"}
-        };
+        private readonly IEnumerable<TickMark> AvgPowerLoadSecondsTickList = GenerateTickTickMarks(3, 60, 3);
 
-        private readonly IEnumerable<TickMark> ApiLockSecondsTickList = new List<TickMark>
-        {
-            new(){ Label = "100", Value = "100"},
-            new(){ Label = "200", Value = "200"},
-            new(){ Label = "300", Value = "300"},
-            new(){ Label = "400", Value = "400"},
-            new(){ Label = "500", Value = "500"},
-            new(){ Label = "600", Value = "600"},
-            new(){ Label = "700", Value = "700"},
-            new(){ Label = "800", Value = "800"},
-            new(){ Label = "900", Value = "900"},
-            new(){ Label = "1000", Value = "1000"}
-        };
+        private readonly IEnumerable<TickMark> ApiLockSecondsTickList = GenerateTickTickMarks(100, 1000, 50); 
 
-        private readonly IEnumerable<TickMark> ApiOffsetAvgTickList = new List<TickMark>
+        private readonly IEnumerable<TickMark> ApiOffsetAvgTickList = GenerateTickTickMarks(0, 100, 25);
+
+        private readonly IEnumerable<TickMark> ApiMaxPowerTickList = GenerateTickTickMarks(700, 900, 10);
+
+        private static IEnumerable<TickMark> GenerateTickTickMarks(int start, int end, int step)
         {
-            new(){ Label = "0", Value = "0"},
-            new(){ Label = "25", Value = "25"},
-            new(){ Label = "50", Value = "50"},
-            new(){ Label = "75", Value = "75"},
-            new(){ Label = "100", Value = "100"}
-        };
+            var tickMarks = new List<TickMark>();
+            for (int i = start; i <= end; i += step)
+            {
+                tickMarks.Add(new TickMark { Label = i.ToString(), Value = i.ToString() });
+            }
+            return tickMarks;
+        }
 
         Tabs tabsMainRef = default!;
 
@@ -204,6 +183,28 @@ namespace EnergyAutomate.Components.Pages
                     {
                         Label = "SettingOffSetAvg",
                         Data = dataSource.Select(x => (double?)x.SettingOffSetAvg).ToList(),
+                        BackgroundColor= "rgb(0, 255, 0)",
+                        BorderColor = "rgb(255, 0, 0)",
+                        BorderWidth = 2,
+                        PointRadius = new List<double>() { 0 },
+                        Stepped = true,
+                        Order = 1
+                    },
+                    new LineChartDataset()
+                    {
+                        Label = "UpperLimit",
+                        Data = dataSource.Select(x => (double?)x.SettingOffSetAvg + (x.SettingToleranceAvg/2)).ToList(),
+                        BackgroundColor= "rgb(255, 0, 0)",
+                        BorderColor = "rgb(255, 0, 0)",
+                        BorderWidth = 2,
+                        PointRadius = new List<double>() { 0 },
+                        Stepped = true,
+                        Order = 1
+                    },
+                    new LineChartDataset()
+                    {
+                        Label = "LowerLimit",
+                        Data = dataSource.Select(x => (double?)x.SettingOffSetAvg - (x.SettingToleranceAvg/2)).ToList(),
                         BackgroundColor= "rgb(255, 0, 0)",
                         BorderColor = "rgb(255, 0, 0)",
                         BorderWidth = 2,

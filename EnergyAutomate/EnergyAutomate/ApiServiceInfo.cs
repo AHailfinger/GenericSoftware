@@ -15,9 +15,16 @@ public class ApiServiceInfo
 
     public int SettingOffsetAvg { get; set; } = 75;
 
-    public int SettingToleranceAvg { get; set; } = 25;
+    public int SettingToleranceAvg { get; set; } = 50;
+
+    public int SettingMaxPower { get; set; } = 800;
 
     public int AvgPowerLoad { get; set; }
+
+
+
+    public int DeltaPowerValue { get; set; }
+    public int DifferencePowerValue { get; set; }
     public int LastPowerValue { get; set; }
     public int NewPowerValue { get; set; }
   

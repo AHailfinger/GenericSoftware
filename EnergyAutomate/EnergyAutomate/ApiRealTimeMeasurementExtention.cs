@@ -45,6 +45,8 @@ namespace EnergyAutomate
 
         public int SettingOffSetAvg { get; set; }
 
+        public int SettingToleranceAvg { get; set; }
+
         [NotMapped]
         public int TotalPower => Power > 0 ? (int)Power : -(int)(PowerProduction ?? 0);
 
