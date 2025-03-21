@@ -31,7 +31,6 @@ namespace EnergyAutomate
 
         public void Dispose()
         {
-            ApiService.Dispose();
         }
     }
 }
