@@ -22,8 +22,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnergyAutomate.OpenMeteo", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnergyAutomate.Emulator", "EnergyAutomate.Emulator\EnergyAutomate.Emulator.csproj", "{1023C6AA-CC55-4B04-AB97-3079D7273FEC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnergyAutomate.Emulator.Cli", "EnergyAutomate.Emulator.Cli\EnergyAutomate.Emulator.Cli.csproj", "{14DCA0CA-D0AD-4C98-A47D-B1F33ECA4A76}"
-EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "EnergyAutomation.GroBro", "EnergyAutomation.GroBro\EnergyAutomation.GroBro.pyproj", "{AAE9915A-6337-4E99-9253-5C5B39198D52}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnergyAutomate.CodeFactory", "EnergyAutomate.CodeFactory\EnergyAutomate.CodeFactory.csproj", "{48BF5299-ED6B-ACCA-837D-DA24579C5FD2}"
@@ -65,10 +63,6 @@ Global
 		{1023C6AA-CC55-4B04-AB97-3079D7273FEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1023C6AA-CC55-4B04-AB97-3079D7273FEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1023C6AA-CC55-4B04-AB97-3079D7273FEC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{14DCA0CA-D0AD-4C98-A47D-B1F33ECA4A76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{14DCA0CA-D0AD-4C98-A47D-B1F33ECA4A76}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{14DCA0CA-D0AD-4C98-A47D-B1F33ECA4A76}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{14DCA0CA-D0AD-4C98-A47D-B1F33ECA4A76}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AAE9915A-6337-4E99-9253-5C5B39198D52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AAE9915A-6337-4E99-9253-5C5B39198D52}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{48BF5299-ED6B-ACCA-837D-DA24579C5FD2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU

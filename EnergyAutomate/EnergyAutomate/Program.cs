@@ -10,6 +10,7 @@ using CoordinateSharp;
 using EnergyAutomate.Definitions;
 using EnergyAutomate.Emulator;
 using EnergyAutomate.Emulator.Growatt;
+using EnergyAutomate.Services.BackgroundServices;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -102,8 +103,8 @@ public class Program
 
         builder.Services.AddSingleton<PythonWrapper>();
         builder.Services.AddSingleton<GrowattModbusCodec>();
-        builder.Services.AddSingleton<ApiService>();
-        builder.Services.AddSingleton<ApiRealTimeMeasurementWatchdog>();
+        builder.Services.AddSingleton<EnergyAutomateService>();
+        builder.Services.AddSingleton<TIbberApiService>();
         builder.Services.AddSingleton<ApiQueueWatchdog<IDeviceQuery>>();
         builder.Services.AddSingleton<ICodeTemplateProvider, DefaultCodeTemplateProvider>();
         builder.Services.AddScoped<DatabaseCodeTemplateStore>();
@@ -111,16 +112,13 @@ public class Program
         builder.Services.AddSingleton<RoslynCodeFactory>();
         builder.Services.AddScoped<RuntimeCodeTemplateExecutor>();
 
-        // Register background services only when enabled. Optional services must not block web startup.
-        if (configuration.GetSection("BackgroundServices").GetValue("ApiBackgroundService", true))
-        {
-            builder.Services.AddHostedService<ApiBackgroundService>();
-        }
-
-        if (configuration.GetSection("BackgroundServices").GetValue("MqttProxyWorker", false))
-        {
-            builder.Services.AddHostedService<MqttProxyWorker>();
-        }
+        builder.Services.AddSingleton<GrowattApiService>();
+        builder.Services.AddSingleton<TibberBackgroundService>();
+        builder.Services.AddSingleton<EnergyAutomateBackgroundService>();
+        builder.Services.AddSingleton<GrowattBackgroundService>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<EnergyAutomateBackgroundService>());
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<TibberBackgroundService>());
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<GrowattBackgroundService>());
 
         builder.Services.AddBlazorBootstrap();
 

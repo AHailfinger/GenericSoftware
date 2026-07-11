@@ -2,14 +2,14 @@ namespace EnergyAutomate.Services.CodeFactory;
 
 public sealed class EnergyDistributionManagerScriptFactory : EnergyScriptFactoryBase<EnergyDistributionManagerEvent>, IEnergyDistributionManagerScriptFactory
 {
-    private readonly ApiService _apiService;
+    private readonly EnergyAutomateService _apiService;
     private readonly ApiQueueWatchdog<IDeviceQuery> _queueWatchdog;
     private readonly RuntimeCodeTemplateExecutor _codeTemplateExecutor;
     private readonly ILogger _logger;
 
     public EnergyDistributionManagerScriptFactory(
         EnergyDistributionManagerEvent eventData,
-        ApiService apiService,
+        EnergyAutomateService apiService,
         ApiQueueWatchdog<IDeviceQuery> queueWatchdog,
         RuntimeCodeTemplateExecutor codeTemplateExecutor,
         ILogger logger,

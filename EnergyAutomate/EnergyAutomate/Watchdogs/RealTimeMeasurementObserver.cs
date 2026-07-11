@@ -1,12 +1,14 @@
-﻿namespace EnergyAutomate.Watchdogs
+﻿using EnergyAutomate.Services.BackgroundServices;
+
+namespace EnergyAutomate.Watchdogs
 {
     public class RealTimeMeasurementObserver : IObserver<RealTimeMeasurement>, IDisposable
     {
         #region Public Constructors
 
-        public RealTimeMeasurementObserver(ApiRealTimeMeasurementWatchdog apiRealTimeMeasurementWatchdog, ApiService apiService)
+        public RealTimeMeasurementObserver(TIbberApiService apiRealTimeMeasurementWatchdog, TibberBackgroundService tibberBackgroundService)
         {
-            ApiService = apiService;
+            TibberBackgroundService = tibberBackgroundService;
             Watchdog = apiRealTimeMeasurementWatchdog;
         }
 
@@ -14,9 +16,9 @@
 
         #region Properties
 
-        private ApiService? ApiService { get; set; }
+        private TibberBackgroundService? TibberBackgroundService { get; set; }
 
-        private ApiRealTimeMeasurementWatchdog Watchdog { get; set; }
+        private TIbberApiService Watchdog { get; set; }
 
         #endregion Properties
 
@@ -24,7 +26,7 @@
 
         public void Dispose()
         {
-            ApiService = null;
+            TibberBackgroundService = null;
         }
 
         public void OnCompleted()
@@ -39,7 +41,7 @@
 
         public void OnNext(RealTimeMeasurement value)
         {
-            ApiService?.OnNext(value);
+            _ = TibberBackgroundService?.ProcessRealTimeMeasurementAsync(value);
         }
 
         #endregion Public Methods

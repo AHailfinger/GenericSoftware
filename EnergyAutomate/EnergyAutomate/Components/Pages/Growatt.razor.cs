@@ -9,7 +9,7 @@ namespace EnergyAutomate.Components.Pages
 {
     public partial class Growatt
     {
-        private readonly IEnumerable<TickMark> ApiPowerTickList = ApiService.GenerateTickTickMarks(0, 900, 50);
+        private readonly IEnumerable<TickMark> ApiPowerTickList = EnergyAutomateService.GenerateTickTickMarks(0, 900, 50);
 
         #region Properties
 

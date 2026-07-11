@@ -6,7 +6,7 @@ namespace EnergyAutomate.Services
     /// <summary>
     /// Partial class for handling real-time power adjustments based on Tibber's real-time measurements.
     /// </summary>
-    public partial class ApiService
+    public partial class EnergyAutomateService
     {
         #region Fields
 

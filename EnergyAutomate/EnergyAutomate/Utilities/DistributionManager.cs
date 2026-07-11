@@ -17,7 +17,7 @@ namespace EnergyAutomate.Utilities
 
         #region Properties
 
-        private ApiService ApiService => ServiceProvider.GetRequiredService<ApiService>();
+        private EnergyAutomateService ApiService => ServiceProvider.GetRequiredService<EnergyAutomateService>();
         private RuntimeCodeTemplateExecutor CodeTemplateExecutor => ServiceProvider.GetRequiredService<RuntimeCodeTemplateExecutor>();
         private ApiQueueWatchdog<IDeviceQuery> GrowattDeviceQueryQueueWatchdog => ServiceProvider.GetRequiredService<ApiQueueWatchdog<IDeviceQuery>>();
         private ILogger LoggerRTM => ServiceProvider.GetRequiredService<ILogger<DistributionManager>>();

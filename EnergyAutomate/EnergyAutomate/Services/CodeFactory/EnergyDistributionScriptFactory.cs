@@ -2,13 +2,13 @@ namespace EnergyAutomate.Services.CodeFactory;
 
 public sealed class EnergyDistributionScriptFactory : EnergyScriptFactoryBase<EnergyDistributionEvent>, IEnergyDistributionScriptFactory
 {
-    private readonly ApiService _apiService;
+    private readonly EnergyAutomateService _apiService;
     private readonly ApiQueueWatchdog<IDeviceQuery> _queueWatchdog;
     private readonly IReadOnlyList<DeviceList> _onlineNoahDevices;
 
     public EnergyDistributionScriptFactory(
         EnergyDistributionEvent eventData,
-        ApiService apiService,
+        EnergyAutomateService apiService,
         ApiQueueWatchdog<IDeviceQuery> queueWatchdog,
         IReadOnlyList<DeviceList> onlineNoahDevices,
         ILogger logger,

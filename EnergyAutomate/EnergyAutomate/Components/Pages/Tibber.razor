@@ -1,0 +1,61 @@
+@page "/tibber"
+
+@using BlazorBootstrap
+@using EnergyAutomate.Services
+
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@inject EnergyAutomateService ApiService
+
+<PageTitle>Tibber</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Tibber</h3>
+    <a class="btn btn-outline-primary" href="/">Zurück zum Dashboard</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-6">
+        <Card Class="h-100">
+            <CardHeader>Realtime</CardHeader>
+            <CardBody>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Realtime measurements</span>
+                        <strong>@ApiService.TibberListRealTimeMeasurement().Count</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Restriction mode</span>
+                        <strong>@ApiService.CurrentState.IsExpensiveRestrictionMode</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Current hour</span>
+                        <strong>@ApiService.CurrentState.UtcNow.LocalDateTime</strong>
+                    </li>
+                </ul>
+            </CardBody>
+        </Card>
+    </div>
+
+    <div class="col-xl-6">
+        <Card Class="h-100">
+            <CardHeader>Price</CardHeader>
+            <CardBody>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Price entries</span>
+                        <strong>@ApiService.TibberListPrices().Count</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Current price</span>
+                        <strong>@(ApiService.TibberListPrices().FirstOrDefault(x => x.StartsAt.UtcDateTime.Date == ApiService.CurrentState.UtcNow.Date && x.StartsAt.UtcDateTime.Hour == ApiService.CurrentState.UtcNow.Hour)?.Total is decimal currentPrice ? currentPrice.ToString("0.000") : "-")</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Avg power load seconds</span>
+                        <strong>@ApiService.ApiSettingAvgPowerLoadSeconds</strong>
+                    </li>
+                </ul>
+            </CardBody>
+        </Card>
+    </div>
+</div>

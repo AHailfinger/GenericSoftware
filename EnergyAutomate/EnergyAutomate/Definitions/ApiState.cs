@@ -10,14 +10,14 @@ namespace EnergyAutomate.Definitions
 
         public bool IsRTMAutoModeRunning = false;
         public bool IsRTMRestrictionModeRunning = false;
-        private readonly ApiService _apiService;
+        private readonly EnergyAutomateService _apiService;
         private IServiceProvider _serviceProvider;
 
         #endregion Fields
 
         #region Public Constructors
 
-        public ApiState(IServiceProvider serviceProvider, ApiService apiService)
+        public ApiState(IServiceProvider serviceProvider, EnergyAutomateService apiService)
         {
             _serviceProvider = serviceProvider;
             _apiService = apiService;
