@@ -13,6 +13,7 @@ namespace EnergyAutomate.Emulator
 {
     public class PythonWrapper
     {
+        private readonly object pythonRuntimeLock = new();
         private GrowattModbusCodec ModbusCodec { get; set; }
         private IServiceProvider ServiceProvider { get; set; }
         private ILogger<PythonWrapper> Logger => ServiceProvider.GetRequiredService<ILogger<PythonWrapper>>();
@@ -81,6 +82,14 @@ namespace EnergyAutomate.Emulator
 
         public void StartPythonClient()
         {
+            EnsurePythonRuntimeInitialized();
+
+            if (_pythonThread?.IsAlive == true)
+            {
+                Logger.LogInformation("[TRACE] Python client is already running");
+                return;
+            }
+
             LogFromPython("[TRACE] Starting Python background thread");
             _pythonThread = new Thread(RunPythonClient)
             {
@@ -93,7 +102,14 @@ namespace EnergyAutomate.Emulator
         public void StopPythonClient()
         {
             LogFromPython("[TRACE] Stoping Python client");
-            _clientInstance?.stop();
+            try
+            {
+                _clientInstance?.stop();
+            }
+            finally
+            {
+                _clientInstance = null;
+            }
         }
 
         private void RunPythonClient()
@@ -103,8 +119,7 @@ namespace EnergyAutomate.Emulator
                 string assemblyDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? AppContext.BaseDirectory;
                 LogFromPython($"[TRACE] Assembly directory: {assemblyDirectory}");
 
-                LogFromPython("[TRACE] Initializing Python runtime in background thread");
-                PythonEngine.Initialize();
+                EnsurePythonRuntimeInitialized();
 
                 // Initialisierung und Start des Python-Clients im GIL-Kontext
                 using (Py.GIL())
@@ -150,13 +165,24 @@ namespace EnergyAutomate.Emulator
                     LogFromPython("[TRACE] Starting Python client");
                     _clientInstance.start();
                 }
-
-                PythonEngine.Shutdown();
-                LogFromPython("[TRACE] Python runtime shutdown complete");
             }
             catch (Exception ex)
             {
                 LogFromPython("[TRACE] Exception in Python thread: " + ex);
+            }
+        }
+
+        private void EnsurePythonRuntimeInitialized()
+        {
+            lock (pythonRuntimeLock)
+            {
+                if (PythonEngine.IsInitialized)
+                {
+                    return;
+                }
+
+                LogFromPython("[TRACE] Initializing Python runtime");
+                PythonEngine.Initialize();
             }
         }
 

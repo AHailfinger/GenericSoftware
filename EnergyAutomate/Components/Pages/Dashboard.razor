@@ -1,0 +1,180 @@
+﻿@page "/"
+
+@using System.Collections.Specialized
+@using BlazorBootstrap
+@using EnergyAutomate.Definitions
+@using EnergyAutomate.Services
+@using Microsoft.AspNetCore.Components.Web
+
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@inject EnergyAutomateService ApiService
+@inject ILogger<Dashboard> Logger
+
+<PageTitle>Dashboard</PageTitle>
+
+<div class="row g-3 mb-3">
+    <div class="col-xl-4 col-md-6">
+        <Card Class="h-100">
+            <CardHeader>Tibber Overview</CardHeader>
+            <CardBody>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Realtime measurements</span>
+                        <strong>@ApiService.TibberListRealTimeMeasurement().Count</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Price entries</span>
+                        <strong>@ApiService.TibberListPrices().Count</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Current price</span>
+                        <strong>@(ApiService.TibberListPrices().FirstOrDefault(x => x.StartsAt.UtcDateTime.Date == ApiService.CurrentState.UtcNow.Date && x.StartsAt.UtcDateTime.Hour == ApiService.CurrentState.UtcNow.Hour)?.Total is decimal currentPrice ? currentPrice.ToString("0.000") : "-")</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Restriction mode</span>
+                        <strong>@ApiService.CurrentState.IsExpensiveRestrictionMode</strong>
+                    </li>
+                </ul>
+            </CardBody>
+        </Card>
+    </div>
+
+    <div class="col-xl-4 col-md-6">
+        <Card Class="h-100">
+            <CardHeader>Growatt Overview</CardHeader>
+            <CardBody>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Devices</span>
+                        <strong>@ApiService.GrowattGetDeviceLists().Count</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Online Noah devices</span>
+                        <strong>@ApiService.GrowattGetDevicesNoahOnline().Count</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Total PPV</span>
+                        <strong>@ApiService.CurrentState.GrowattNoahTotalPPV W</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Battery level</span>
+                        <strong>@ApiService.GrowattGetBatteryLevel() %</strong>
+                    </li>
+                </ul>
+            </CardBody>
+        </Card>
+    </div>
+
+    <div class="col-xl-4 col-md-12">
+        <Card Class="h-100">
+            <CardHeader>Weather Overview</CardHeader>
+            <CardBody>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Sunrise</span>
+                        <strong>@ApiService.CurrentState.SunRise?.ToString()</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Sunset</span>
+                        <strong>@ApiService.CurrentState.SunSet?.ToString()</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Battery charge window</span>
+                        <strong>@ApiService.CurrentState.BatteryChargeStart - @ApiService.CurrentState.BatteryChargeEnd</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Weather loaded</span>
+                        <strong>@(DashboardWeatherForecast is null ? "No" : "Yes")</strong>
+                    </li>
+                </ul>
+            </CardBody>
+        </Card>
+    </div>
+</div>
+
+<Card Class="my-3">
+    <CardHeader>Tibber Live</CardHeader>
+    <CardBody>
+        @if (!ApiService.TibberListRealTimeMeasurement().Any())
+        {
+            <p>Loading...</p>
+        }
+        else
+        {
+            <Card Class="col-12">
+                <CardBody>
+                    <CardTitle>
+                        <div class="row w-100">
+                            <div class="col-md-6">
+                                Last Indicator Values
+                            </div>
+                        </div>
+
+                    </CardTitle>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <div class="row w-100">
+                                <div class="col-md-6">
+                                    AutoModeRestriction: @ApiService.CurrentState.IsExpensiveRestrictionMode
+                                </div>
+                                <div class="col-md-6">
+                                    CurrentHour: @ApiService.CurrentState.UtcNow.LocalDateTime
+                                </div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row w-100">
+                                <div class="col-md-6">
+                                    Offset: @ApiService.ApiSettingAvgPowerOffset
+                                </div>
+                                <div class="col-md-6">
+                                    Hysteresis: @ApiService.ApiSettingAvgPowerHysteresis
+                                </div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row w-100">
+                                <div class="col-md-6">
+                                    LoadSeconds: @ApiService.ApiSettingAvgPowerLoadSeconds
+                                </div>
+                                <div class="col-md-6">
+                                    DeviceQueryQueue: @ApiService.GrowattDeviceQueryQueueWatchdogCount
+                                </div>
+                            </div>
+                        </li>
+                        @{
+                            var enumerator = ApiService.ApiSettingAvgPowerAdjustmentTraceValues.OrderBy(x => x.Key).GetEnumerator();
+                        }
+
+                        @while (enumerator.MoveNext())
+                        {
+                            APiTraceValue firstEntry = enumerator.Current;
+                            APiTraceValue? secondEntry = null;
+
+                            if (enumerator.MoveNext())
+                            {
+                                secondEntry = enumerator.Current;
+
+                            }
+
+                            <li class="list-group-item">
+                                <div class="row w-100">
+                                    <div class="col-md-6">
+                                        @firstEntry.Key: @firstEntry.Value
+                                    </div>
+                                    @if (secondEntry != null)
+                                    {
+                                        <div class="col-md-6">
+                                            @secondEntry.Key: @secondEntry.Value
+                                        </div>
+                                    }
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </CardBody>
+            </Card>
+        }
+    </CardBody>
+</Card>

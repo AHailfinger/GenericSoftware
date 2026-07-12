@@ -1,0 +1,414 @@
+@page "/tibber"
+
+@using System.Collections.Specialized
+@using BlazorBootstrap
+@using EnergyAutomate.Services
+@using EnergyAutomate.Definitions
+@using Microsoft.AspNetCore.Components
+
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@inject EnergyAutomateService ApiService
+@inject ILogger<Tibber> Logger
+
+@implements IDisposable
+
+<PageTitle>Tibber</PageTitle>
+
+<Card Class="my-3">
+    <CardHeader>Charts</CardHeader>
+    <CardBody>
+        @if (!ApiService.TibberListRealTimeMeasurement().Any() || !ApiService.TibberGetPriceDatas().Any())
+        {
+            <p>Loading...</p>
+        }
+
+        <LineChart @ref="realTimeMeasurementChart" Class="tibberLineChart mb-3" Height="40" HeightUnit="Unit.Vh" />
+        <LineChart @ref="priceChart" Class="tibberLineChart" Height="40" HeightUnit="Unit.Vh" />
+    </CardBody>
+</Card>
+
+@code {
+    private LineChart realTimeMeasurementChart = default!;
+    private ChartData realTimeMeasurementData = default!;
+    private LineChart priceChart = default!;
+    private ChartData priceData = default!;
+
+    private bool isRealTimeMeasurementChartInitialized;
+    private bool isPriceChartInitialized;
+    private bool isDisposed;
+
+    protected override void OnInitialized()
+    {
+        ApiService.TibberRealTimeMeasurementRegisterOnCollectionChanged(this, RealTimeMeasurement_CollectionChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await RenderChartsAsync();
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    public void Dispose()
+    {
+        isDisposed = true;
+        ApiService.TibberRealTimeMeasurementUnRegisterOnCollectionChanged(this);
+    }
+
+    private void GetRealTimeMeasurementData()
+    {
+        var dataSource = ApiService.TibberListRealTimeMeasurement().OrderByDescending(x => x.TS).Take(61).Reverse().ToList();
+
+        realTimeMeasurementData = new ChartData
+        {
+            Labels = dataSource.Select((x, index) => index % 5 == 0 ? x.TS.ToLocalTime().TimeOfDay.ToString() : string.Empty).ToList(),
+            Datasets = new List<IChartDataset>()
+            {
+                new LineChartDataset()
+                {
+                    Label = "Consumtion",
+                    Data = dataSource.Select(x => (double?)x.Power).ToList(),
+                    BackgroundColor = "rgb(88, 80, 141)",
+                    BorderColor = "rgb(88, 80, 141)",
+                    BorderWidth = 2,
+                    HoverBorderWidth = 4,
+                    Fill = true,
+                    Stepped = true,
+                    Order = 5
+                },
+                new LineChartDataset()
+                {
+                    Label = "Production",
+                    Data = dataSource.Select(x => (double?)x.PowerProduction).Select(s => -s).ToList(),
+                    BackgroundColor = "rgb(255, 166, 0)",
+                    BorderColor = "rgb(255, 166, 0)",
+                    BorderWidth = 2,
+                    HoverBorderWidth = 4,
+                    Fill = true,
+                    Stepped = true,
+                    Order = 4
+                },
+                new LineChartDataset()
+                {
+                    Label = "AvgPowerConsumption",
+                    Data = dataSource.Select(x => (double?)x.PowerAvgConsumption).ToList(),
+                    BackgroundColor = "rgb(0, 0, 0)",
+                    BorderColor = "rgb(0, 0, 0)",
+                    BorderWidth = 2,
+                    PointRadius = new List<double>() { 0 },
+                    Order = 3
+                },
+                new LineChartDataset()
+                {
+                    Label = "AvgPowerProduction",
+                    Data = dataSource.Select(x => (double?)x.PowerAvgProduction).Select(s => -s).ToList(),
+                    BackgroundColor = "rgb(0, 0, 0)",
+                    BorderColor = "rgb(0, 0, 0)",
+                    BorderWidth = 2,
+                    PointRadius = new List<double>() { 0 },
+                    Order = 2
+                },
+                new LineChartDataset()
+                {
+                    Label = "SettingOffSetAvg",
+                    Data = dataSource.Select(x => (double?)x.SettingOffSetAvg).ToList(),
+                    BackgroundColor = "rgb(0, 255, 0)",
+                    BorderColor = "rgb(255, 0, 0)",
+                    BorderWidth = 2,
+                    PointRadius = new List<double>() { 0 },
+                    Stepped = true,
+                    Order = 1
+                },
+                new LineChartDataset()
+                {
+                    Label = "UpperLimit",
+                    Data = dataSource.Select(x => (double?)x.SettingOffSetAvg + (x.SettingAvgPowerHysteresis / 2)).ToList(),
+                    BackgroundColor = "rgb(255, 0, 0)",
+                    BorderColor = "rgb(255, 0, 0)",
+                    BorderWidth = 2,
+                    PointRadius = new List<double>() { 0 },
+                    Stepped = true,
+                    Order = 1
+                },
+                new LineChartDataset()
+                {
+                    Label = "LowerLimit",
+                    Data = dataSource.Select(x => (double?)x.SettingOffSetAvg - (x.SettingAvgPowerHysteresis / 2)).ToList(),
+                    BackgroundColor = "rgb(255, 0, 0)",
+                    BorderColor = "rgb(255, 0, 0)",
+                    BorderWidth = 2,
+                    PointRadius = new List<double>() { 0 },
+                    Stepped = true,
+                    Order = 1
+                },
+            }
+        };
+    }
+
+    private void GetPriceData()
+    {
+        var dataItems = ApiService.TibberGetPriceDatas();
+
+        TimeSpan offset = dataItems.FirstOrDefault()?.StartsAt.Offset ?? TimeSpan.Zero;
+        DateTimeOffset currentTime = new DateTimeOffset(DateTime.UtcNow).ToOffset(offset);
+
+        var dataPoints = dataItems.Select(x => (double?)x.Total).ToList();
+
+        var dataToday = dataItems.Take(24).ToList();
+        var dataTomorrow = dataItems.Skip(24).Take(24).ToList();
+        double? avgToday = dataToday.Average(x => (double?)x.Total);
+        double? avgTomorrow = dataTomorrow.Average(x => (double?)x.Total);
+
+        var dataLevelPoints = dataToday.Select(x => avgToday / 10 * (double?)x.Level)
+            .Concat(dataTomorrow.Select(x => avgTomorrow / 10 * (double?)x.Level)).ToList();
+
+        var dataAvgPoints = dataToday.Select(x => (double?)x.Total < avgToday ? (double?)x.Total : null)
+            .Concat(dataTomorrow.Select(x => (double?)x.Total < avgTomorrow ? (double?)x.Total : null)).ToList();
+
+        var dataAvgLinePoints = dataToday.Select(x => (double?)x.Total < avgToday ? (double?)x.Total : avgToday)
+            .Concat(dataTomorrow.Select(x => (double?)x.Total < avgTomorrow ? (double?)x.Total : avgTomorrow)).ToList();
+
+        var dataHighPrices = dataToday.Select(x => (int)(x.Level ?? 0) > 2 ? avgToday / 10 * (double?)x.Level : null)
+            .Concat(dataTomorrow.Select(x => (int)(x.Level ?? 0) > 2 ? avgTomorrow / 10 * (double?)x.Level : null)).ToList();
+        var dataLowPrices = dataToday.Select(x => (int)(x.Level ?? 0) > 0 && (int)(x.Level ?? 0) < 3 ? avgToday / 10 * (int)(x.Level ?? 0) : null)
+            .Concat(dataTomorrow.Select(x => (int)(x.Level ?? 0) > 0 && (int)(x.Level ?? 0) < 3 ? avgTomorrow / 10 * (int)(x.Level ?? 0) : null)).ToList();
+
+        var nextHour = currentTime.AddHours(1);
+        var dataCurrentHour = dataItems.Select(x =>
+            (x.StartsAt.Date == currentTime.Date && x.StartsAt.Hour == currentTime.Hour) ||
+            (x.StartsAt.Date == nextHour.Date && x.StartsAt.Hour == nextHour.Hour)
+            ? (double?)x.Total : null
+            ).ToList();
+
+        double? lastValue = null;
+
+        for (int index = 0; index < dataHighPrices.Count; index++)
+        {
+            var point = dataHighPrices[index];
+            if (lastValue != null)
+            {
+                dataHighPrices[index] ??= lastValue;
+            }
+
+            lastValue = point;
+        }
+
+        lastValue = null;
+
+        for (int index = 0; index < dataLowPrices.Count; index++)
+        {
+            var point = dataLowPrices[index];
+            if (lastValue != null)
+            {
+                dataLowPrices[index] ??= lastValue;
+            }
+
+            lastValue = point;
+        }
+
+        priceData = new ChartData
+        {
+            Labels = dataItems.Select(x => x.StartsAt.ToLocalTime().Hour.ToString()).ToList(),
+            Datasets = new List<IChartDataset>()
+            {
+                new LineChartDataset()
+                {
+                    Label = "Price",
+                    Data = dataPoints,
+                    Fill = true,
+                    Stepped = true,
+                    BackgroundColor = "rgb(255, 255, 0)",
+                    BorderColor = "rgb(255, 255, 0)",
+                    BorderWidth = 2,
+                    Order = 5
+                },
+                new LineChartDataset()
+                {
+                    Label = "Avg",
+                    Data = dataAvgPoints,
+                    Fill = true,
+                    Stepped = true,
+                    BackgroundColor = "rgb(190, 190, 190)",
+                    BorderColor = "rgb(190, 190, 190)",
+                    BorderWidth = 2,
+                    Order = 4
+                },
+                new LineChartDataset()
+                {
+                    Label = "Avg",
+                    Data = dataAvgLinePoints,
+                    Fill = true,
+                    Stepped = true,
+                    BackgroundColor = "rgb(190, 190, 190)",
+                    BorderColor = "rgb(190, 190, 190)",
+                    BorderWidth = 3,
+                    PointRadius = new List<double>() { 0 },
+                    Order = 4
+                },
+                new LineChartDataset()
+                {
+                    Label = "Current Hour",
+                    Data = dataCurrentHour,
+                    Fill = true,
+                    Stepped = true,
+                    BackgroundColor = "rgb(0, 0, 255)",
+                    BorderColor = "rgb(0, 0, 255)",
+                    BorderWidth = 2,
+                    Order = 3
+                },
+                new LineChartDataset()
+                {
+                    Label = "Avg high price",
+                    Data = dataHighPrices,
+                    Stepped = true,
+                    Fill = true,
+                    BackgroundColor = "rgb(255, 0, 0)",
+                    BorderColor = "rgb(255, 0, 0)",
+                    BorderWidth = 0,
+                    PointRadius = new List<double>() { 0 },
+                    Order = 2
+                },
+                new LineChartDataset()
+                {
+                    Label = "Avg low price",
+                    Data = dataLowPrices,
+                    Stepped = true,
+                    Fill = true,
+                    BackgroundColor = "rgb(0, 255, 0)",
+                    BorderColor = "rgb(0, 255, 0)",
+                    BorderWidth = 0,
+                    PointRadius = new List<double>() { 0 },
+                    Order = 2
+                },
+                new LineChartDataset()
+                {
+                    Label = "AvgLine",
+                    Data = dataAvgLinePoints,
+                    Stepped = true,
+                    BackgroundColor = "rgb(0, 0, 0)",
+                    BorderColor = "rgb(0, 0, 0)",
+                    BorderWidth = 3,
+                    PointRadius = new List<double>() { 0 },
+                    Order = 1
+                },
+                new LineChartDataset()
+                {
+                    Label = "Level",
+                    Data = dataLevelPoints,
+                    Stepped = true,
+                    BackgroundColor = "rgb(190, 190, 190)",
+                    BorderColor = "rgb(190, 190, 190)",
+                    BorderWidth = 0,
+                    PointRadius = new List<double>() { 0 },
+                    Order = 1
+                },
+            }
+        };
+    }
+
+    private async Task RenderChartsAsync()
+    {
+        if (!isRealTimeMeasurementChartInitialized && ApiService.TibberListRealTimeMeasurement().Any())
+        {
+            var realTimeMeasurementChartOptions = new LineChartOptions();
+
+            realTimeMeasurementChartOptions.Interaction.Mode = InteractionMode.Index;
+            realTimeMeasurementChartOptions.Plugins.Title!.Text = "Tibber power consumption";
+            realTimeMeasurementChartOptions.Plugins.Title.Display = true;
+            realTimeMeasurementChartOptions.Plugins.Title.Font = new ChartFont { Size = 20 };
+            realTimeMeasurementChartOptions.Responsive = true;
+            realTimeMeasurementChartOptions.Scales.X!.Title = new ChartAxesTitle { Text = "Seconds (one minute)", Display = true };
+            realTimeMeasurementChartOptions.Scales.Y!.Title = new ChartAxesTitle { Text = "Watt", Display = true };
+            realTimeMeasurementChartOptions.MaintainAspectRatio = false;
+            GetRealTimeMeasurementData();
+            await realTimeMeasurementChart.InitializeAsync(chartData: realTimeMeasurementData, chartOptions: realTimeMeasurementChartOptions);
+            isRealTimeMeasurementChartInitialized = true;
+        }
+
+        if (!isPriceChartInitialized && ApiService.TibberGetPriceDatas().Any())
+        {
+            var priceChartOptions = new LineChartOptions();
+            priceChartOptions.Interaction.Mode = InteractionMode.Index;
+            priceChartOptions.Plugins.Title!.Text = "Tibber price forecast";
+            priceChartOptions.Plugins.Title.Display = true;
+            priceChartOptions.Plugins.Title.Font = new ChartFont { Size = 20 };
+            priceChartOptions.Responsive = true;
+            priceChartOptions.Scales.X!.Title = new ChartAxesTitle { Text = "Today / Tomorrow", Display = true };
+            priceChartOptions.Scales.Y!.Title = new ChartAxesTitle { Text = "Euro", Display = true };
+            priceChartOptions.MaintainAspectRatio = false;
+
+            GetPriceData();
+            await priceChart.InitializeAsync(chartData: priceData, chartOptions: priceChartOptions);
+            isPriceChartInitialized = true;
+        }
+    }
+
+    private async void RealTimeMeasurement_CollectionChanged()
+    {
+        try
+        {
+            if (isDisposed)
+            {
+                return;
+            }
+
+            if (!isRealTimeMeasurementChartInitialized || !isPriceChartInitialized)
+            {
+                await RenderChartsAsync();
+            }
+
+            if (isDisposed)
+            {
+                return;
+            }
+
+            if (isRealTimeMeasurementChartInitialized && realTimeMeasurementChart != null)
+            {
+                GetRealTimeMeasurementData();
+                if (realTimeMeasurementData != null)
+                {
+                    try
+                    {
+                        await realTimeMeasurementChart.UpdateValuesAsync(realTimeMeasurementData);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        return;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
+                }
+            }
+
+            if (isPriceChartInitialized && priceChart != null)
+            {
+                GetPriceData();
+                if (priceData != null)
+                {
+                    try
+                    {
+                        await priceChart.UpdateValuesAsync(priceData);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        return;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in Tibber chart update");
+        }
+    }
+}

@@ -3,7 +3,7 @@
 ## Session Rules
 - All comments should be in English
 - All documentations should be in English
-- All direct discussions should be in German
+- All direct discussions should be in English
 - All code should be included trace logs
 - All code responses must always include the full, compilable code for the relevant class, method, or file
 - Never use placeholders like "rest of the code", "...", or similar abbreviations
@@ -34,11 +34,11 @@
 
 **When proposing changes:**
 ```
-Ich muss folgendes ändern:
-1. [Datei A] - [Beschreibung]
-2. [Datei B] - [Beschreibung]
-Geschätzter Token-Verbrauch: ~X,000 tokens
-Soll ich fortfahren? (ja/nein)
+I need to change the following:
+1. [File A] - [Description]
+2. [File B] - [Description]
+Estimated token usage: ~X,000 tokens
+Should I continue? (yes/no)
 ```
 
 ## General Principles
@@ -100,3 +100,6 @@ For any Blazor/BlazorBootstrap component:
 - Use properties from memory ❌
 - Skip research to save time ❌
 - Assume documentation without verifying ❌
+
+## Repository Instructions
+- Repository instructions are located at the root under /.github (for example, .github/copilot-instructions.md).

@@ -1,0 +1,90 @@
+@page "/settings"
+@using BlazorBootstrap
+@using EnergyAutomate.Services
+
+<Tabs>
+    <Tab Title="Services">
+        <Content>
+            <Card Class="my-3">
+                <CardHeader>Service Control</CardHeader>
+                <CardBody>
+                    <div class="card mt-3">
+                        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <span>API Service</span>
+                            <span class="badge @GetBackgroundServiceBadgeClass(ApiServiceController.StatusText)">@ApiServiceController.StatusText</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <button type="button" class="btn btn-success" disabled="@(ApiServiceController.IsBusy || ApiServiceController.IsRunning)" @onclick="StartApiServiceAsync">Start</button>
+                                <button type="button" class="btn btn-outline-danger" disabled="@(ApiServiceController.IsBusy || !ApiServiceController.IsRunning)" @onclick="StopApiServiceAsync">Stop</button>
+                                <button type="button" class="btn btn-outline-primary" disabled="@ApiServiceController.IsBusy" @onclick="RestartApiServiceAsync">Restart</button>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(ApiServiceController.LastError))
+                            {
+                                <div class="alert alert-danger mb-0">@ApiServiceController.LastError</div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <span>Growatt Service</span>
+                            <span class="badge @GetBackgroundServiceBadgeClass(GrowattServiceController.StatusText)">@GrowattServiceController.StatusText</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <button type="button" class="btn btn-success" disabled="@(GrowattServiceController.IsBusy || GrowattServiceController.IsRunning)" @onclick="StartGrowattServiceAsync">Start</button>
+                                <button type="button" class="btn btn-outline-danger" disabled="@(GrowattServiceController.IsBusy || !GrowattServiceController.IsRunning)" @onclick="StopGrowattServiceAsync">Stop</button>
+                                <button type="button" class="btn btn-outline-primary" disabled="@GrowattServiceController.IsBusy" @onclick="RestartGrowattServiceAsync">Restart</button>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(GrowattServiceController.LastError))
+                            {
+                                <div class="alert alert-danger mb-0">@GrowattServiceController.LastError</div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <span>Tibber Service</span>
+                            <span class="badge @GetBackgroundServiceBadgeClass(TibberServiceController.StatusText)">@TibberServiceController.StatusText</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <button type="button" class="btn btn-success" disabled="@(TibberServiceController.IsBusy || TibberServiceController.IsRunning)" @onclick="StartTibberServiceAsync">Start</button>
+                                <button type="button" class="btn btn-outline-danger" disabled="@(TibberServiceController.IsBusy || !TibberServiceController.IsRunning)" @onclick="StopTibberServiceAsync">Stop</button>
+                                <button type="button" class="btn btn-outline-primary" disabled="@TibberServiceController.IsBusy" @onclick="RestartTibberServiceAsync">Restart</button>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(TibberServiceController.LastError))
+                            {
+                                <div class="alert alert-danger mb-0">@TibberServiceController.LastError</div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mt-3 text-muted">@BackgroundServicesStatusText</div>
+                </CardBody>
+            </Card>
+        </Content>
+    </Tab>
+
+    <Tab Title="Power">
+        <Content>
+            <Card Class="my-3">
+                <CardHeader>Power Settings</CardHeader>
+                <CardBody>
+                    <div class="mb-3">Max Power <RangeInput TValue="int" @bind-Value="ApiServiceController.ApiSettingMaxPower" Min="0" Max="900" TickMarks="ApiPowerTickList" Step="25" /></div>
+                    <div class="mb-3">Average Power <RangeInput TValue="int" @bind-Value="ApiServiceController.ApiSettingAvgPower" Min="0" Max="900" TickMarks="ApiPowerTickList" Step="25" /></div>
+                    <div class="mb-3">Average Power Offset <RangeInput TValue="int" @bind-Value="ApiServiceController.ApiSettingAvgPowerOffset" Min="-25" Max="150" TickMarks="ApiOffsetAvgTickList" Step="5" /></div>
+                    <div class="mb-3">Average Power Hysteresis <RangeInput TValue="int" @bind-Value="ApiServiceController.ApiSettingAvgPowerHysteresis" Min="0" Max="300" TickMarks="ApiToleranceAvgTickList" Step="10" /></div>
+                    <div class="mb-3">Average Power Load Seconds <RangeInput TValue="int" @bind-Value="ApiServiceController.ApiSettingAvgPowerLoadSeconds" Min="0" Max="180" TickMarks="AvgPowerLoadSecondsTickList" Step="5" /></div>
+                    <div class="mb-3">Power Adjustment Wait Cycles <RangeInput TValue="int" @bind-Value="ApiServiceController.ApiSettingPowerAdjustmentWaitCycles" Min="0" Max="5" TickMarks="ApiSettingPowerAdjustmentWaitCyclesTickList" Step="1" /></div>
+                    <div class="mb-3">Power Adjustment Factor <RangeInput TValue="int" @bind-Value="ApiServiceController.ApiSettingPowerAdjustmentFactor" Min="0" Max="100" TickMarks="ApiSettingPowerAdjustmentFactorTickList" Step="10" /></div>
+                </CardBody>
+            </Card>
+        </Content>
+    </Tab>
+</Tabs>
